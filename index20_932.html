@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Re:ACT — Control de Ingresos</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',sans-serif;background:#0f1117;color:#f1f5f9;min-height:100vh;}
+input,select,button{font-family:'Inter',sans-serif;}
+.topbar{background:#1a1d27;border-bottom:1px solid #2a2d3a;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:50;}
+.logo{font-size:22px;font-weight:900;letter-spacing:2px;color:#fff;}
+.logo span{color:#00A7BA;}
+.nav button{padding:8px 14px;border-radius:6px;border:none;cursor:pointer;font-size:13px;font-weight:500;background:transparent;color:#94a3b8;}
+.nav button.active{background:#00A7BA;color:#fff;}
+.nav button.compra{background:#15803d;color:#fff;}
+.nav button.control{background:#2B5C79;color:#fff;}
+.nav{display:flex;gap:5px;flex-wrap:wrap;}
+.screen{display:none;padding:24px;max-width:1100px;margin:0 auto;}
+.screen.active{display:block;}
+.card{background:#1a1d27;border:1px solid #2a2d3a;border-radius:12px;padding:20px;}
+.inp{padding:12px 14px;border-radius:8px;border:1px solid #2a2d3a;background:#20232f;color:#f1f5f9;font-size:18px;width:100%;outline:none;font-family:'Inter',sans-serif;}
+.btn{padding:14px 20px;border-radius:9px;border:none;cursor:pointer;font-weight:700;font-size:16px;font-family:'Inter',sans-serif;}
+.btn-primary{background:#00A7BA;color:#fff;width:100%;}
+.btn-green{background:#22c55e;color:#fff;width:100%;}
+.pill{padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;display:inline-block;}
+.pill-green{background:#166534;color:#dcfce7;}
+.pill-red{background:#991b1b;color:#fee2e2;}
+.pill-amber{background:#854d0e;color:#fef3c7;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.stat-card{background:#20232f;border:1px solid #2a2d3a;border-radius:12px;padding:16px;text-align:center;}
+table{width:100%;border-collapse:collapse;font-size:14px;}
+th{padding:10px 12px;text-align:left;color:#94a3b8;font-weight:500;border-bottom:1px solid #2a2d3a;}
+td{padding:10px 12px;border-bottom:1px solid #1a1d27;}
+tr:nth-child(even) td{background:#1a1d27;}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;z-index:200;}
+.modal-bg.open{display:flex;}
+.modal{background:#1a1d27;border:1px solid #2a2d3a;border-radius:16px;padding:28px;width:min(520px,95vw);max-height:90vh;overflow-y:auto;}
+.plan-btn{padding:16px;border-radius:12px;border:2px solid #2a2d3a;background:#20232f;cursor:pointer;text-align:left;width:100%;}
+.plan-btn.selected{border-color:#00A7BA;background:rgba(0,167,186,0.12);}
+.metodo-btn{padding:9px 14px;border-radius:20px;border:1.5px solid #2a2d3a;background:transparent;color:#94a3b8;cursor:pointer;font-size:13px;}
+.metodo-btn.selected{border-color:#00A7BA;background:rgba(0,167,186,0.12);color:#00A7BA;font-weight:700;}
+.msg{padding:14px;border-radius:8px;font-weight:700;text-align:center;font-size:16px;margin-top:12px;}
+.msg-ok{background:#0f2d1a;color:#22c55e;border:1px solid #22c55e;}
+.msg-err{background:#2d0f0f;color:#ef4444;border:1px solid #ef4444;}
+#pantalla-acceso{position:fixed;inset:0;background:#0f1117;display:flex;align-items:center;justify-content:center;z-index:9999;}
+@media(max-width:600px){.grid2{grid-template-columns:1fr;}.grid4{grid-template-columns:1fr 1fr;}.screen{padding:16px;}}
+</style>
+</head>
+<body>
+
+<!-- PANTALLA ACCESO -->
+<div id="pantalla-acceso">
+  <div style="background:#1a1d27;border:1px solid #2a2d3a;border-radius:16px;padding:40px;width:min(380px,95vw);text-align:center;">
+    <div style="font-size:52px;font-weight:900;letter-spacing:4px;margin-bottom:4px;">Re:<span style="color:#00A7BA;">ACT</span></div>
+    <div style="font-size:12px;color:#94a3b8;letter-spacing:2px;margin-bottom:28px;">REHABILITACION Y ACTIVIDAD FISICA</div>
+    <div style="font-size:15px;color:#94a3b8;margin-bottom:10px;">Ingresa la contraseña de acceso</div>
+    <!-- autocomplete="new-password" evita que el navegador rellene el campo automáticamente -->
+    <input id="acc-pass" type="password" placeholder="Contraseña" class="inp" autocomplete="new-password" style="font-size:20px;text-align:center;letter-spacing:4px;margin-bottom:12px;" onkeydown="if(event.key==='Enter')verificarAcceso()"/>
+    <div id="acc-err" style="color:#ef4444;font-size:14px;margin-bottom:12px;display:none;">Contraseña incorrecta</div>
+    <button class="btn btn-primary" style="font-size:18px;padding:16px;" onclick="verificarAcceso()">Ingresar</button>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">Re:<span>ACT</span><span style="font-size:11px;color:#64748b;font-weight:400;margin-left:8px;">Control de Ingresos</span></div>
+  <div class="nav">
+    <button class="active" onclick="showScreen('reception')">Recepcion</button>
+    <button class="compra" onclick="showScreen('compra')">🛒 Compra</button>
+    <button class="control" onclick="showScreen('control')">👁 Control</button>
+    <button onclick="showScreen('admin')">Admin</button>
+    <button onclick="showScreen('dashboard')">Dashboard</button>
+  </div>
+</div>
+
+<!-- RECEPCION -->
+<div id="screen-reception" class="screen active">
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;">
+    <div class="card" style="width:100%;max-width:500px;">
+      <div style="text-align:center;margin-bottom:28px;">
+        <div style="font-size:52px;font-weight:900;letter-spacing:4px;">Re:<span style="color:#00A7BA;">ACT</span></div>
+        <div style="font-size:13px;color:#94a3b8;letter-spacing:2px;margin-top:6px;">REHABILITACION Y ACTIVIDAD FISICA</div>
+      </div>
+      <input class="inp" id="rec-cedula" type="number" placeholder="Numero de cedula" style="font-size:24px;margin-bottom:14px;letter-spacing:3px;" onkeydown="if(event.key==='Enter')buscarUsuario()"/>
+      <button class="btn btn-primary" onclick="buscarUsuario()" id="rec-btn">Consultar</button>
+      <div id="rec-result" style="margin-top:20px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- COMPRA -->
+<div id="screen-compra" class="screen">
+  <div style="display:flex;flex-direction:column;align-items:center;min-height:80vh;padding-top:20px;">
+    <div class="card" style="width:100%;max-width:560px;">
+      <div id="c-step1">
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px;">Nueva compra</div>
+        <div style="font-size:14px;color:#94a3b8;margin-bottom:18px;">Digita la cedula del usuario</div>
+        <input class="inp" id="c-ced" type="number" placeholder="Numero de cedula" style="font-size:22px;margin-bottom:14px;letter-spacing:3px;" onkeydown="if(event.key==='Enter')buscarCompra()"/>
+        <button class="btn btn-primary" onclick="buscarCompra()">Buscar</button>
+      </div>
+      <div id="c-step2" style="display:none;">
+        <div id="c-userinfo" style="margin-bottom:16px;"></div>
+        <div style="margin-bottom:12px;"><div style="font-size:15px;color:#94a3b8;margin-bottom:8px;">Nombre completo</div><input class="inp" id="c-nombre" type="text"/></div>
+        <div style="margin-bottom:12px;"><div style="font-size:15px;color:#94a3b8;margin-bottom:8px;">Telefono WhatsApp</div><input class="inp" id="c-tel" type="number"/></div>
+        <div style="margin-bottom:14px;"><div style="font-size:15px;color:#94a3b8;margin-bottom:10px;">Plan</div><div class="grid2" id="c-planes"></div></div>
+        <div class="grid2" style="margin-bottom:14px;">
+          <div><div style="font-size:15px;color:#94a3b8;margin-bottom:8px;">Vence el</div><input class="inp" id="c-vence" type="date"/></div>
+          <div><div style="font-size:15px;color:#94a3b8;margin-bottom:8px;">Valor ($)</div><input class="inp" id="c-valor" type="number" style="font-size:20px;"/></div>
+        </div>
+        <div style="margin-bottom:18px;"><div style="font-size:15px;color:#94a3b8;margin-bottom:8px;">Metodo de pago</div><div style="display:flex;gap:8px;flex-wrap:wrap;" id="c-metodos"></div></div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn" style="flex:1;background:#1a1d27;color:#94a3b8;border:1px solid #2a2d3a;" onclick="volverStep1()">← Atras</button>
+          <button class="btn btn-green" style="flex:2;" onclick="abrirPwdCompra()">Confirmar compra ✓</button>
+        </div>
+      </div>
+      <div id="c-step3" style="display:none;text-align:center;">
+        <div style="font-size:40px;margin-bottom:12px;">✅</div>
+        <div style="font-size:20px;font-weight:700;margin-bottom:8px;">Compra registrada</div>
+        <div id="c-resumen" style="background:#20232f;border-radius:12px;padding:18px;margin-bottom:18px;text-align:left;"></div>
+        <button class="btn" style="width:100%;background:#1a1d27;color:#94a3b8;border:1px solid #2a2d3a;" onclick="resetCompra()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONTROL -->
+<div id="screen-control" class="screen">
+  <div style="text-align:center;margin-bottom:24px;">
+    <div style="font-size:40px;font-weight:900;letter-spacing:3px;">Re:<span style="color:#00A7BA;">ACT</span></div>
+    <div style="font-size:12px;color:#94a3b8;letter-spacing:2px;margin-top:4px;">REHABILITACION Y ACTIVIDAD FISICA</div>
+    <div style="font-size:14px;color:#94a3b8;margin-top:8px;" id="ctrl-fecha"></div>
+    <div style="width:60px;height:2px;background:#00A7BA;margin:12px auto 0;"></div>
+  </div>
+  <div class="grid4" style="margin-bottom:24px;" id="ctrl-stats"></div>
+  <div class="card" style="overflow:hidden;padding:0;">
+    <div style="padding:14px 20px;border-bottom:1px solid #2a2d3a;display:flex;justify-content:space-between;align-items:center;">
+      <div style="font-weight:700;font-size:15px;">Registro del dia</div>
+      <button class="btn" style="padding:6px 14px;font-size:13px;background:#20232f;color:#94a3b8;border:1px solid #2a2d3a;" onclick="cargarControl()">↻ Actualizar</button>
+    </div>
+    <div style="overflow-x:auto;" id="ctrl-tabla"></div>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div id="screen-admin" class="screen">
+  <div id="adm-login" style="display:flex;align-items:center;justify-content:center;min-height:70vh;">
+    <div class="card" style="width:340px;text-align:center;">
+      <div style="font-size:36px;font-weight:900;margin-bottom:4px;">Re:<span style="color:#00A7BA;">ACT</span></div>
+      <div style="font-size:15px;color:#94a3b8;margin-bottom:20px;">Panel Administrativo</div>
+      <!-- autocomplete="new-password" también en el campo admin -->
+      <input class="inp" id="adm-pass" type="password" placeholder="Contrasena admin" autocomplete="new-password" style="margin-bottom:14px;" onkeydown="if(event.key==='Enter')loginAdmin()"/>
+      <div id="adm-err" style="color:#ef4444;font-size:14px;margin-bottom:10px;display:none;">Contrasena incorrecta</div>
+      <button class="btn btn-primary" onclick="loginAdmin()">Ingresar</button>
+    </div>
+  </div>
+  <div id="adm-panel" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div style="font-size:20px;font-weight:700;">Panel Administrativo</div>
+      <button class="btn" style="padding:7px 16px;font-size:13px;background:transparent;color:#94a3b8;border:1px solid #2a2d3a;" onclick="logoutAdmin()">Cerrar sesion</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:24px;border-bottom:1px solid #2a2d3a;padding-bottom:12px;flex-wrap:wrap;" id="adm-tabs"></div>
+    <div id="adm-content"></div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="screen-dashboard" class="screen">
+  <div style="font-size:20px;font-weight:700;margin-bottom:24px;">Dashboard</div>
+  <div id="dash-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:28px;"></div>
+  <div class="grid2" id="dash-tables"></div>
+</div>
+
+<!-- MODAL FIRMA -->
+<div class="modal-bg" id="mod-firma">
+  <div class="modal">
+    <div style="font-size:18px;font-weight:700;margin-bottom:4px;">Firma digital</div>
+    <div style="font-size:14px;color:#94a3b8;margin-bottom:16px;" id="firma-lbl"></div>
+    <div style="background:#fff;border-radius:10px;border:2px solid #00A7BA;overflow:hidden;touch-action:none;">
+      <canvas id="firma-cv" width="460" height="200" style="display:block;width:100%;height:200px;cursor:crosshair;touch-action:none;"></canvas>
+    </div>
+    <div style="font-size:12px;color:#94a3b8;text-align:center;margin:8px 0 16px;">Dibuje con el dedo o el mouse</div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-green" style="flex:2;" onclick="guardarFirma()">✅ Confirmar ingreso</button>
+      <button class="btn" style="flex:1;background:#1a1d27;color:#94a3b8;border:1px solid #2a2d3a;" onclick="limpiarFirma()">Limpiar</button>
+      <button class="btn" style="flex:1;background:#1a1d27;color:#ef4444;border:1px solid #ef4444;" onclick="cerrarFirma()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONTRASEÑA COMPRA -->
+<div class="modal-bg" id="mod-pwd-compra">
+  <div class="modal" style="max-width:380px;">
+    <div style="font-size:18px;font-weight:700;margin-bottom:6px;">🔒 Autorización requerida</div>
+    <div style="font-size:14px;color:#94a3b8;margin-bottom:18px;">Ingresa la contraseña para confirmar la compra</div>
+    <input class="inp" id="pwd-compra-inp" type="password" placeholder="Contraseña" autocomplete="new-password" style="font-size:20px;text-align:center;letter-spacing:4px;margin-bottom:8px;" onkeydown="if(event.key==='Enter')validarPwdCompra()"/>
+    <div id="pwd-compra-err" style="color:#ef4444;font-size:13px;text-align:center;margin-bottom:12px;display:none;">Contraseña incorrecta. Intenta de nuevo.</div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-green" style="flex:2;" onclick="validarPwdCompra()">✅ Confirmar</button>
+      <button class="btn" style="flex:1;background:#1a1d27;color:#94a3b8;border:1px solid #2a2d3a;" onclick="cerrarPwdCompra()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL VALIDACION -->
+<div class="modal-bg" id="mod-val">
+  <div class="modal" style="max-width:380px;">
+    <div style="font-size:17px;font-weight:700;margin-bottom:6px;">Validacion especialista</div>
+    <div style="font-size:14px;color:#94a3b8;margin-bottom:18px;" id="val-lbl"></div>
+    <input class="inp" id="val-ini" type="text" placeholder="Ej: JRM" maxlength="4" style="font-size:26px;font-weight:700;text-align:center;letter-spacing:10px;margin-bottom:14px;" onkeydown="if(event.key==='Enter')confirmarVal()"/>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-green" style="flex:2;" onclick="confirmarVal()">✅ Confirmar</button>
+      <button class="btn" style="flex:1;background:#1a1d27;color:#94a3b8;border:1px solid #2a2d3a;" onclick="cerrarVal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SB_URL='https://jgrfqoctxoazpbxuuqoq.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpncmZxb2N0eG9henBieHV1cW9xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NzQ4MjEsImV4cCI6MjA5NDI1MDgyMX0.ZMIeKwibVl65dm19BpcAciw_ecKXUqguuoU5Qq8P0lQ';
+const db=supabase.createClient(SB_URL,SB_KEY);
+const PWD_ACCESO='Control2026';
+const PWD_ADMIN='React2026';
+const PWD_COMPRA='COMPRA2026';
+const METODOS=['Efectivo','Transferencia','Tarjeta debito','Tarjeta credito','Nequi / Daviplata'];
+const MOTIVOS=['Cortesia comercial','Incapacidad medica','Error administrativo','Compensacion','Convenio especial','Otro'];
+
+let uActual=null,metodo='Efectivo',planSel=null,planes=[],admLogged=false,admTab='usuarios',cUser=null,cIsNew=false,valId=null;
+
+const fmt=d=>d?new Date(d+'T12:00:00').toLocaleDateString('es-CO'):'—';
+const pesos=v=>'
+
+window.addEventListener('load',()=>{
+  const accPass=document.getElementById('acc-pass');
+  const admPass=document.getElementById('adm-pass');
+  if(accPass){accPass.value='';accPass.focus();}
+  if(admPass){admPass.value='';}
+});
+
+// ACCESO GENERAL
+async function verificarAcceso(){
+  const campo=document.getElementById('acc-pass');
+  const p=(campo.value||'').trim();
+  document.getElementById('acc-err').style.display='none';
+  if(p===PWD_ACCESO||p===PWD_ADMIN){
+    document.getElementById('pantalla-acceso').style.display='none';
+    if(p===PWD_ADMIN){admLogged=true;}
+    try{await initPlanes();}catch(e){console.warn('initPlanes:',e);}
+  }else{
+    document.getElementById('acc-err').style.display='block';
+    campo.value='';
+    campo.focus();
+  }
+}
+
+function showScreen(s){
+  document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
+  document.getElementById('screen-'+s).classList.add('active');
+  if(s==='control')cargarControl();
+  if(s==='dashboard')cargarDash();
+  if(s==='admin'&&admLogged){document.getElementById('adm-login').style.display='none';document.getElementById('adm-panel').style.display='block';cargarAdm();}
+}
+
+// SONIDO
+function sonido(){
+  try{
+    const a=new(window.AudioContext||window.webkitAudioContext)();
+    [[523.25,0,.12],[659.25,.1,.12],[783.99,.2,.12],[1046.5,.3,.22],[783.99,.5,.1],[1046.5,.6,.3]].forEach(([f,t,d])=>{
+      const o=a.createOscillator(),g=a.createGain(),l=a.createOscillator(),lg=a.createGain();
+      o.connect(g);g.connect(a.destination);o.type='sine';o.frequency.setValueAtTime(f,a.currentTime+t);
+      l.connect(lg);lg.connect(o.frequency);l.frequency.setValueAtTime(6,a.currentTime+t);lg.gain.setValueAtTime(8,a.currentTime+t);
+      l.start(a.currentTime+t);l.stop(a.currentTime+t+d+.05);
+      g.gain.setValueAtTime(0,a.currentTime+t);g.gain.linearRampToValueAtTime(.35,a.currentTime+t+.03);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+t+d);
+      o.start(a.currentTime+t);o.stop(a.currentTime+t+d+.05);
+    });
+  }catch(e){}
+}
+
+// RECEPCION
+async function buscarUsuario(){
+  const ced=document.getElementById('rec-cedula').value.trim();
+  if(!ced)return;
+  document.getElementById('rec-btn').textContent='Consultando...';
+  const{data}=await db.from('usuarios').select('*').eq('cedula',ced).maybeSingle();
+  document.getElementById('rec-btn').textContent='Consultar';
+  uActual=data;
+  const r=document.getElementById('rec-result');
+  if(!data){r.innerHTML='<div class="msg msg-err">Usuario no encontrado</div>';return;}
+  const ini=data.nombre.split(' ').map(n=>n[0]).slice(0,2).join('');
+  const ok=data.estado_plan==='Vigente'&&(data.ingresos_restantes>0||data.ingresos_totales===999);
+  r.innerHTML=`<div class="card">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+      <div style="width:52px;height:52px;border-radius:50%;background:#2B5C79;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;">${ini}</div>
+      <div><div style="font-weight:700;font-size:20px;">${data.nombre}</div><div style="color:#94a3b8;font-size:14px;">CC ${data.cedula}</div></div>
+      <span class="pill ${eCol(data.estado_plan)}" style="margin-left:auto;">${data.estado_plan}</span>
+    </div>
+    <div class="grid2" style="margin-bottom:16px;">
+      ${[['Plan',data.plan||'—'],['Compra',fmt(data.fecha_compra)],['Vencimiento',fmt(data.fecha_vencimiento)],['Ingresos rest.',data.ingresos_totales===999?'Ilimitado':data.ingresos_restantes+'/'+data.ingresos_totales]].map(([k,v])=>`<div style="background:#0f1117;border-radius:8px;padding:12px 14px;"><div style="font-size:12px;color:#94a3b8;margin-bottom:3px;">${k}</div><div style="font-weight:700;font-size:18px;">${v}</div></div>`).join('')}
+    </div>
+    ${ok?'<button class="btn btn-green" onclick="abrirFirma()">✅ Aceptar e ingresar → Firma</button>'
+      :`<div class="msg msg-err">${data.estado_plan==='Vencido'?'Plan vencido':data.estado_plan==='Debe pago'?'Debe pago — No se permite':'Sin ingresos disponibles'}</div>`}
+  </div>`;
+}
+
+// FIRMA
+const cv=document.getElementById('firma-cv'),cx=cv.getContext('2d');
+let draw=false;
+const pos=(e,c)=>{const r=c.getBoundingClientRect(),s=e.touches?e.touches[0]:e;return{x:(s.clientX-r.left)*(c.width/r.width),y:(s.clientY-r.top)*(c.height/r.height)};};
+cv.addEventListener('mousedown',e=>{draw=true;const p=pos(e,cv);cx.beginPath();cx.moveTo(p.x,p.y);});
+cv.addEventListener('mousemove',e=>{if(!draw)return;const p=pos(e,cv);cx.lineWidth=2.5;cx.lineCap='round';cx.strokeStyle='#00A7BA';cx.lineTo(p.x,p.y);cx.stroke();cx.beginPath();cx.moveTo(p.x,p.y);});
+cv.addEventListener('mouseup',()=>draw=false);cv.addEventListener('mouseleave',()=>draw=false);
+cv.addEventListener('touchstart',e=>{e.preventDefault();draw=true;const p=pos(e,cv);cx.beginPath();cx.moveTo(p.x,p.y);},{passive:false});
+cv.addEventListener('touchmove',e=>{e.preventDefault();if(!draw)return;const p=pos(e,cv);cx.lineWidth=2.5;cx.lineCap='round';cx.strokeStyle='#00A7BA';cx.lineTo(p.x,p.y);cx.stroke();cx.beginPath();cx.moveTo(p.x,p.y);},{passive:false});
+cv.addEventListener('touchend',e=>{e.preventDefault();draw=false;},{passive:false});
+function abrirFirma(){document.getElementById('firma-lbl').textContent=uActual.nombre+' — firme para confirmar su ingreso';document.getElementById('mod-firma').classList.add('open');limpiarFirma();}
+function limpiarFirma(){cx.clearRect(0,0,cv.width,cv.height);}
+function cerrarFirma(){document.getElementById('mod-firma').classList.remove('open');}
+async function guardarFirma(){
+  const b=document.createElement('canvas');b.width=cv.width;b.height=cv.height;
+  if(cv.toDataURL()===b.toDataURL()){alert('Por favor dibuje su firma.');return;}
+  const firma=cv.toDataURL('image/png');
+  cerrarFirma();
+  const u=uActual,nr=u.ingresos_totales===999?999:u.ingresos_restantes-1;
+  await db.from('usuarios').update({ingresos_restantes:nr}).eq('id',u.id);
+  const{count}=await db.from('ingresos').select('*',{count:'exact',head:true}).eq('usuario_id',u.id);
+  const num=(count||0)+1;
+  await db.from('ingresos').insert([{usuario_id:u.id,nombre:u.nombre,cedula:u.cedula,numero_ingreso:num,estado_pago:u.estado_plan,firma,sede:'Principal',registrado_por:'Recepcion'}]);
+  sonido();
+  document.getElementById('rec-result').innerHTML=`<div class="msg msg-ok">✓ Ingreso #${num} registrado correctamente</div>`;
+  setTimeout(()=>{document.getElementById('rec-cedula').value='';document.getElementById('rec-result').innerHTML='';uActual=null;},3500);
+}
+
+function abrirPwdCompra(){
+  document.getElementById('pwd-compra-inp').value='';
+  document.getElementById('pwd-compra-err').style.display='none';
+  document.getElementById('mod-pwd-compra').classList.add('open');
+  setTimeout(()=>document.getElementById('pwd-compra-inp').focus(),100);
+}
+function cerrarPwdCompra(){
+  document.getElementById('mod-pwd-compra').classList.remove('open');
+}
+async function validarPwdCompra(){
+  const p=document.getElementById('pwd-compra-inp').value;
+  if(p!==PWD_COMPRA){
+    document.getElementById('pwd-compra-err').style.display='block';
+    document.getElementById('pwd-compra-inp').value='';
+    document.getElementById('pwd-compra-inp').focus();
+    return;
+  }
+  cerrarPwdCompra();
+  await confirmarCompra();
+}
+
+// COMPRA
+async function initPlanes(){const{data}=await db.from('planes').select('*').eq('activo',true).order('precio');planes=data||[];}
+function renderPlanes(){
+  const el=document.getElementById('c-planes');if(!el)return;
+  el.innerHTML=planes.map(p=>`<button class="plan-btn${planSel?.id===p.id?' selected':''}" onclick="elegirPlan('${p.id}')">
+    <div style="font-size:17px;font-weight:800;color:${planSel?.id===p.id?'#00A7BA':'#f1f5f9'};margin-bottom:4px;">${p.nombre}</div>
+    <div style="font-size:24px;font-weight:700;color:#22c55e;margin-bottom:4px;">${pesos(p.precio)}</div>
+    <div style="font-size:13px;color:#94a3b8;">${p.ingresos} ingresos · 1 mes</div>
+  </button>`).join('');
+}
+function renderMetodos(){
+  const el=document.getElementById('c-metodos');if(!el)return;
+  el.innerHTML=METODOS.map(m=>`<button class="metodo-btn${metodo===m?' selected':''}" onclick="elegirMetodo('${m}')">${m}</button>`).join('');
+}
+function elegirPlan(id){planSel=planes.find(p=>p.id===id);if(planSel){document.getElementById('c-valor').value=planSel.precio;document.getElementById('c-vence').value=nextMonth();}renderPlanes();}
+function elegirMetodo(m){metodo=m;renderMetodos();}
+function volverStep1(){document.getElementById('c-step1').style.display='block';document.getElementById('c-step2').style.display='none';}
+async function buscarCompra(){
+  const ced=document.getElementById('c-ced').value.trim();if(!ced)return;
+  const{data}=await db.from('usuarios').select('*').eq('cedula',ced).maybeSingle();
+  cUser=data;cIsNew=!data;
+  document.getElementById('c-step1').style.display='none';document.getElementById('c-step2').style.display='block';
+  if(data){document.getElementById('c-nombre').value=data.nombre;document.getElementById('c-tel').value=data.telefono||'';document.getElementById('c-userinfo').innerHTML=`<div style="background:#0f2d1a;border:1px solid #22c55e;border-radius:10px;padding:14px;"><div style="font-weight:700;font-size:17px;">${data.nombre}</div><div style="font-size:13px;color:#94a3b8;">CC ${data.cedula} · Plan: ${data.plan||'—'}</div></div>`;}
+  else{document.getElementById('c-nombre').value='';document.getElementById('c-tel').value='';document.getElementById('c-userinfo').innerHTML='<div style="background:#1e3a5f;border:1px solid #2563eb;border-radius:10px;padding:14px;font-size:14px;color:#93c5fd;">🆕 Usuario nuevo</div>';}
+  if(!planSel&&planes.length>0){planSel=planes[0];document.getElementById('c-valor').value=planes[0].precio;document.getElementById('c-vence').value=nextMonth();}
+  renderPlanes();renderMetodos();
+}
+async function confirmarCompra(){
+  const nombre=document.getElementById('c-nombre').value.trim(),tel=document.getElementById('c-tel').value.trim(),vence=document.getElementById('c-vence').value,valor=parseInt(document.getElementById('c-valor').value)||0;
+  if(!nombre||!planSel||!vence){alert('Completa todos los campos');return;}
+  const hoy=new Date().toISOString().split('T')[0],ced=cIsNew?document.getElementById('c-ced').value.trim():cUser.cedula;
+  let uid;
+  if(cIsNew){const{data:n}=await db.from('usuarios').insert([{nombre,cedula:ced,telefono:tel,fecha_compra:hoy,fecha_vencimiento:vence,ingresos_totales:planSel.ingresos,ingresos_restantes:planSel.ingresos,estado_plan:'Vigente',plan:planSel.nombre}]).select().single();uid=n.id;}
+  else{await db.from('usuarios').update({fecha_compra:hoy,fecha_vencimiento:vence,ingresos_totales:planSel.ingresos,ingresos_restantes:planSel.ingresos,estado_plan:'Vigente',plan:planSel.nombre}).eq('id',cUser.id);uid=cUser.id;}
+  await db.from('compras').insert([{usuario_id:uid,nombre,cedula:ced,telefono:tel,plan:planSel.nombre,fecha_compra:hoy,fecha_vencimiento:vence,ingresos_totales:planSel.ingresos,valor_pagado:valor,metodo_pago:metodo}]);
+  document.getElementById('c-step2').style.display='none';document.getElementById('c-step3').style.display='block';
+  document.getElementById('c-resumen').innerHTML=[['Plan',planSel.nombre],['Vence',fmt(vence)],['Ingresos',planSel.ingresos],['Valor',pesos(valor)],['Metodo',metodo]].map(([k,v])=>`<div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:15px;"><span style="color:#94a3b8;">${k}</span><b>${v}</b></div>`).join('');
+  document.getElementById('c-wa').href='https://wa.me/57'+tel+'?text='+encodeURIComponent(`Hola ${nombre.split(' ')[0]}!\n\n✅ Compra registrada — Re:ACT\n\nPlan: ${planSel.nombre}\nVigente hasta: ${fmt(vence)}\nIngresos: ${planSel.ingresos}\nValor: ${pesos(valor)}\nMetodo: ${metodo}\n\nGracias!`);
+}
+function resetCompra(){document.getElementById('c-step1').style.display='block';document.getElementById('c-step2').style.display='none';document.getElementById('c-step3').style.display='none';document.getElementById('c-ced').value='';planSel=null;metodo='Efectivo';cUser=null;cIsNew=false;}
+
+// CONTROL
+async function cargarControl(){
+  const ahora=new Date();
+  document.getElementById('ctrl-fecha').textContent=ahora.toLocaleDateString('es-CO',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  // Mostrar últimas 48 horas (2 días)
+  const desde=new Date(ahora);
+  desde.setHours(ahora.getHours()-48);
+  const desdeISO=desde.toISOString();
+  const hastaISO=ahora.toISOString();
+
+  // Para stats solo contar hoy
+  const hoy=ahora.toISOString().split('T')[0];
+
+  const[{data:ing},{data:usr}]=await Promise.all([
+    db.from('ingresos').select('*').gte('fecha_hora',desdeISO).lte('fecha_hora',hastaISO).order('fecha_hora',{ascending:false}),
+    db.from('usuarios').select('id,cedula,ingresos_restantes,ingresos_totales')
+  ]);
+
+  // Stats solo del día actual en hora Colombia
+  const ingHoy=ing?.filter(i=>esHoyCol(i.fecha_hora))||[];
+  const t=ingHoy.length,cf=ingHoy.filter(i=>i.firma).length,v=ingHoy.filter(i=>i.val_iniciales).length;
+
+  document.getElementById('ctrl-stats').innerHTML=[['🏃','Ingresos hoy',t,'#00A7BA'],['✍️','Con firma',cf,'#22c55e'],['⚠️','Sin firma',t-cf,'#f59e0b'],['🎯','Validados',v,'#82C2A7']].map(([ic,l,val,c])=>`<div class="stat-card" style="border-top:3px solid ${c};"><div style="font-size:20px;">${ic}</div><div style="font-size:12px;color:#94a3b8;margin-top:4px;">${l}</div><div style="font-size:32px;font-weight:800;color:${c};margin-top:4px;">${val}</div></div>`).join('');
+
+  if(!ing?.length){document.getElementById('ctrl-tabla').innerHTML='<div style="text-align:center;padding:60px;color:#94a3b8;font-size:16px;">🏋️ Sin ingresos en las últimas 48 horas</div>';return;}
+
+  // Agrupar por día para mostrar separadores
+  let tablaHTML='';
+  let diaActual='';
+  ing.forEach((i,idx)=>{
+    // Calcular día en hora Colombia
+    const diaCol=new Date(i.fecha_hora).toISOString().split('T')[0];
+    if(diaCol!==diaActual){
+      diaActual=diaCol;
+      const esHoy=diaCol===hoy;
+      const labelDia=esHoy?'📅 HOY — '+new Date(diaIngreso+'T12:00:00').toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long'}):'📅 AYER — '+new Date(diaIngreso+'T12:00:00').toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long'});
+      tablaHTML+=`<tr><td colspan="7" style="background:#0f1117;padding:10px 14px;font-size:12px;font-weight:700;color:${esHoy?'#00A7BA':'#64748b'};letter-spacing:1px;">${labelDia}</td></tr>`;
+    }
+    const u=usr?.find(x=>x.cedula===i.cedula),rest=u?(u.ingresos_totales===999?'Ilimitado':u.ingresos_restantes+' rest.'):'—';
+    const hora=new Date(i.fecha_hora).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});
+    const ini=i.nombre.split(' ').map(n=>n[0]).slice(0,2).join('');
+    const valBtn=i.val_iniciales
+      ?`<div style="display:flex;align-items:center;gap:8px;"><div style="width:34px;height:34px;border-radius:50%;background:#14532d;border:2px solid #22c55e;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#86efac;">${i.val_iniciales}</div><span style="font-size:11px;color:#94a3b8;">${new Date(i.val_fecha_hora).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'})}</span></div>`
+      :i.firma
+        ?`<button class="btn" style="padding:6px 12px;font-size:12px;background:transparent;color:#00A7BA;border:1.5px solid #00A7BA;" onclick="abrirVal('${i.id}','${i.nombre.replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">+ Validar</button>`
+        :'<span style="color:#ef4444;font-size:12px;">Sin firma</span>';
+    tablaHTML+=`<tr><td style="color:#94a3b8;font-weight:600;">${idx+1}</td><td style="color:#94a3b8;">${hora}</td><td><div style="display:flex;align-items:center;gap:10px;"><div style="width:34px;height:34px;border-radius:50%;background:#2B5C79;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;">${ini}</div><span style="font-weight:600;">${i.nombre}</span></div></td><td><span style="padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;background:rgba(0,167,186,0.15);color:#00A7BA;">${rest}</span></td><td style="text-align:center;font-size:18px;">${i.firma?'✅':'⚠️'}</td><td><span class="pill ${i.firma?'pill-green':'pill-amber'}">${i.firma?'Completo':'Sin firma'}</span></td><td>${valBtn}</td></tr>`;
+  });
+
+  document.getElementById('ctrl-tabla').innerHTML=`<table><thead><tr><th>#</th><th>Hora</th><th>Nombre</th><th>Rest.</th><th>Firma</th><th>Estado</th><th>Validacion</th></tr></thead><tbody>${tablaHTML}</tbody></table>`;
+}
+function abrirVal(id,nombre){valId=id;document.getElementById('val-lbl').textContent='Validar ingreso de: '+nombre;document.getElementById('val-ini').value='';document.getElementById('mod-val').classList.add('open');setTimeout(()=>document.getElementById('val-ini').focus(),100);}
+function cerrarVal(){document.getElementById('mod-val').classList.remove('open');}
+async function confirmarVal(){const ini=document.getElementById('val-ini').value.trim().toUpperCase();if(!ini){alert('Ingresa tus iniciales');return;}await db.from('ingresos').update({val_iniciales:ini,val_fecha_hora:nowISO()}).eq('id',valId);cerrarVal();cargarControl();}
+
+// ADMIN
+function loginAdmin(){const p=document.getElementById('adm-pass').value;if(p===PWD_ADMIN){admLogged=true;document.getElementById('adm-login').style.display='none';document.getElementById('adm-panel').style.display='block';cargarAdm();}else document.getElementById('adm-err').style.display='block';}
+function logoutAdmin(){admLogged=false;document.getElementById('adm-panel').style.display='none';document.getElementById('adm-login').style.display='flex';document.getElementById('adm-pass').value='';}
+async function cargarAdm(){
+  document.getElementById('adm-tabs').innerHTML=['usuarios','planes','compras','reportes'].map(t=>`<button class="btn${admTab===t?' btn-primary':''}" style="padding:8px 18px;font-size:14px;${admTab!==t?'background:#1a1d27;color:#94a3b8;border:1px solid #2a2d3a;':''}" onclick="cambiarTab('${t}')">${t.charAt(0).toUpperCase()+t.slice(1)}</button>`).join('');
+  if(admTab==='usuarios')await tabUsuarios();
+  else if(admTab==='planes')await tabPlanes();
+  else if(admTab==='compras')await tabCompras();
+  else await tabReportes();
+}
+function cambiarTab(t){admTab=t;cargarAdm();}
+
+async function tabUsuarios(){
+  const{data:u}=await db.from('usuarios').select('*').order('nombre');
+  document.getElementById('adm-content').innerHTML=`<div style="display:flex;justify-content:flex-end;margin-bottom:14px;"><button class="btn btn-primary" style="width:auto;padding:9px 18px;" onclick="frmUsuario()">+ Nuevo usuario</button></div><div id="frm-u"></div><div style="overflow-x:auto;"><table><thead><tr><th>Nombre</th><th>Cedula</th><th>Plan</th><th>Vence</th><th>Ingresos</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>${(u||[]).map(x=>`<tr><td style="font-weight:500;">${x.nombre}</td><td style="color:#94a3b8;">${x.cedula}</td><td>${x.plan||'—'}</td><td>${fmt(x.fecha_vencimiento)}</td><td style="text-align:center;">${x.ingresos_totales===999?'∞':x.ingresos_restantes+'/'+x.ingresos_totales}</td><td><span class="pill ${eCol(x.estado_plan)}">${x.estado_plan}</span></td><td style="white-space:nowrap;"><button class="btn" style="padding:5px 9px;font-size:11px;background:#1a1d27;color:#00A7BA;border:1px solid #00A7BA;margin-right:3px;" onclick='frmUsuario(${JSON.stringify(x).replace(/"/g,"&quot;")})'>Editar</button><button class="btn" style="padding:5px 9px;font-size:11px;background:#1a1d27;color:#00A7BA;border:1px solid #00A7BA;margin-right:3px;" onclick='frmAmpliar(${JSON.stringify(x).replace(/"/g,"&quot;")})'>📅</button><button class="btn" style="padding:5px 9px;font-size:11px;background:#1a1d27;color:#ef4444;border:1px solid #ef4444;" onclick="delUsuario('${x.id}')">Eliminar</button></td></tr>`).join('')}</tbody></table></div>`;
+}
+function frmUsuario(u){document.getElementById('frm-u').innerHTML=`<div class="card" style="margin-bottom:16px;"><div style="font-weight:700;margin-bottom:14px;">${u?'Editar':'Nuevo'} usuario</div><input type="hidden" id="fu-id" value="${u?.id||''}"/><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">${[['fu-nom','Nombre','text',u?.nombre||''],['fu-ced','Cedula','text',u?.cedula||''],['fu-tel','Telefono','text',u?.telefono||''],['fu-cp','Fecha compra','date',u?.fecha_compra||''],['fu-vc','Fecha vence','date',u?.fecha_vencimiento||'']].map(([id,l,t,v])=>`<div><div style="font-size:12px;color:#94a3b8;margin-bottom:4px;">${l}</div><input class="inp" id="${id}" type="${t}" value="${v}" style="background:#0f1117;font-size:15px;"/></div>`).join('')}<div><div style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Plan</div><select class="inp" id="fu-plan" style="background:#0f1117;font-size:15px;">${planes.map(p=>`<option${u?.plan===p.nombre?' selected':''}>${p.nombre}</option>`).join('')}</select></div><div><div style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Estado</div><select class="inp" id="fu-est" style="background:#0f1117;font-size:15px;">${['Vigente','Vencido','Debe pago'].map(e=>`<option${u?.estado_plan===e?' selected':''}>${e}</option>`).join('')}</select></div><div><div style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Ingresos totales</div><input class="inp" id="fu-it" type="number" value="${u?.ingresos_totales||8}" style="background:#0f1117;font-size:15px;"/></div><div><div style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Ingresos restantes</div><input class="inp" id="fu-ir" type="number" value="${u?.ingresos_restantes||8}" style="background:#0f1117;font-size:15px;"/></div></div><div style="display:flex;gap:10px;"><button class="btn btn-primary" style="width:auto;padding:10px 22px;" onclick="saveUsuario()">Guardar</button><button class="btn" style="width:auto;padding:10px 22px;background:#1a1d27;color:#94a3b8;border:1px solid #2a2d3a;" onclick="document.getElementById('frm-u').innerHTML=''">Cancelar</button></div></div>`;}
+async function saveUsuario(){const id=document.getElementById('fu-id').value;const f={nombre:document.getElementById('fu-nom').value,cedula:document.getElementById('fu-ced').value,telefono:document.getElementById('fu-tel').value,fecha_compra:document.getElementById('fu-cp').value,fecha_vencimiento:document.getElementById('fu-vc').value,plan:document.getElementById('fu-plan').value,estado_plan:document.getElementById('fu-est').value,ingresos_totales:+document.getElementById('fu-it').value,ingresos_restantes:+document.getElementById('fu-ir').value};if(id)await db.from('usuarios').update(f).eq('id',id);else await db.from('usuarios').insert([f]);await tabUsuarios();}
+async function delUsuario(id){if(!confirm('¿Eliminar?'))return;await db.from('usuarios').delete().eq('id',id);await tabUsuarios();}
+function frmAmpliar(u){document.getElementById('frm-u').innerHTML=`<div class="card" style="margin-bottom:16px;border-top:3px solid #00A7BA;"><div style="font-weight:700;margin-bottom:4px;">Ampliar vencimiento</div><div style="font-size:13px;color:#94a3b8;margin-bottom:14px;">${u.nombre} · Vence: <b style="color:#ef4444;">${fmt(u.fecha_vencimiento)}</b></div><input type="hidden" id="ap-id" value="${u.id}"/><input type="hidden" id="ap-ant" value="${u.fecha_vencimiento}"/><input type="hidden" id="ap-nom" value="${u.nombre}"/><div style="margin-bottom:12px;"><div style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Nueva fecha</div><input class="inp" id="ap-nf" type="date" min="${u.fecha_vencimiento}" style="background:#0f1117;font-size:15px;"/></div><div style="margin-bottom:14px;"><div style="font-size:12px;color:#94a3b8;margin-bottom:8px;">Motivo *</div><div style="display:flex;flex-wrap:wrap;gap:8px;">${MOTIVOS.map(m=>`<button class="metodo-btn" onclick="selMot(this,'${m}')">${m}</button>`).join('')}</div><input class="inp" id="ap-mot-txt" placeholder="Escribe el motivo..." style="margin-top:8px;display:none;font-size:15px;"/><input type="hidden" id="ap-mot" value=""/></div><div style="display:flex;gap:10px;"><button class="btn btn-green" style="flex:2;" onclick="saveAmpliar()">✅ Ampliar</button><button class="btn" style="flex:1;background:#1a1d27;color:#94a3b8;border:1px solid #2a2d3a;" onclick="document.getElementById('frm-u').innerHTML=''">Cancelar</button></div></div>`;}
+function selMot(btn,m){document.querySelectorAll('#frm-u .metodo-btn').forEach(b=>b.classList.remove('selected'));btn.classList.add('selected');document.getElementById('ap-mot').value=m;document.getElementById('ap-mot-txt').style.display=m==='Otro'?'block':'none';}
+async function saveAmpliar(){const id=document.getElementById('ap-id').value,ant=document.getElementById('ap-ant').value,nom=document.getElementById('ap-nom').value,nf=document.getElementById('ap-nf').value;let mot=document.getElementById('ap-mot').value;if(mot==='Otro')mot=document.getElementById('ap-mot-txt').value.trim();if(!nf){alert('Selecciona la nueva fecha');return;}if(!mot){alert('El motivo es obligatorio');return;}if(new Date(nf)<=new Date(ant)){alert('La fecha debe ser posterior');return;}await db.from('usuarios').update({fecha_vencimiento:nf,estado_plan:'Vigente'}).eq('id',id);await db.from('ampliaciones').insert([{usuario_id:id,nombre_usuario:nom,fecha_anterior:ant,nueva_fecha:nf,motivo:mot,admin:'admin',fecha_hora:nowISO()}]);alert('Vencimiento ampliado');await tabUsuarios();}
+
+async function tabPlanes(){
+  const{data:pl}=await db.from('planes').select('*').eq('activo',true).order('precio');
+  document.getElementById('adm-content').innerHTML=`<div style="display:flex;justify-content:flex-end;margin-bottom:14px;"><button class="btn btn-primary" style="width:auto;padding:9px 18px;" onclick="frmPlan()">+ Nuevo plan</button></div><div id="frm-p"></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;">${(pl||[]).map(p=>`<div class="card"><div style="font-weight:700;font-size:16px;margin-bottom:10px;">${p.nombre}</div><div style="font-size:14px;color:#94a3b8;margin-bottom:4px;">Ingresos: <b style="color:#f1f5f9;">${p.ingresos}</b></div><div style="font-size:14px;color:#94a3b8;margin-bottom:4px;">Duracion: <b style="color:#f1f5f9;">${p.duracion} dias</b></div><div style="font-size:14px;color:#94a3b8;margin-bottom:14px;">Precio: <b style="color:#22c55e;">${pesos(p.precio)}</b></div><div style="display:flex;gap:8px;"><button class="btn" style="flex:1;padding:7px 0;font-size:12px;background:#1a1d27;color:#00A7BA;border:1px solid #00A7BA;" onclick='frmPlan(${JSON.stringify(p).replace(/"/g,"&quot;")})'>Editar</button><button class="btn" style="flex:1;padding:7px 0;font-size:12px;background:#1a1d27;color:#ef4444;border:1px solid #ef4444;" onclick="delPlan('${p.id}')">Eliminar</button></div></div>`).join('')}</div>`;
+}
+function frmPlan(p){document.getElementById('frm-p').innerHTML=`<div class="card" style="margin-bottom:16px;"><div style="font-weight:700;margin-bottom:14px;">${p?'Editar':'Nuevo'} plan</div><input type="hidden" id="fp-id" value="${p?.id||''}"/><div class="grid2" style="gap:10px;margin-bottom:14px;">${[['fp-nom','Nombre','text',p?.nombre||''],['fp-ing','Ingresos','number',p?.ingresos||0],['fp-dur','Duracion (dias)','number',p?.duracion||30],['fp-pre','Precio ($)','number',p?.precio||0]].map(([id,l,t,v])=>`<div><div style="font-size:12px;color:#94a3b8;margin-bottom:4px;">${l}</div><input class="inp" id="${id}" type="${t}" value="${v}" style="background:#0f1117;font-size:15px;"/></div>`).join('')}</div><div style="display:flex;gap:10px;"><button class="btn btn-primary" style="width:auto;padding:10px 22px;" onclick="savePlan()">Guardar</button><button class="btn" style="width:auto;padding:10px 22px;background:#1a1d27;color:#94a3b8;border:1px solid #2a2d3a;" onclick="document.getElementById('frm-p').innerHTML=''">Cancelar</button></div></div>`;}
+async function savePlan(){const id=document.getElementById('fp-id').value;const f={nombre:document.getElementById('fp-nom').value,ingresos:+document.getElementById('fp-ing').value,duracion:+document.getElementById('fp-dur').value,precio:+document.getElementById('fp-pre').value,activo:true};if(id)await db.from('planes').update(f).eq('id',id);else await db.from('planes').insert([f]);await initPlanes();await tabPlanes();}
+async function delPlan(id){if(!confirm('¿Eliminar?'))return;await db.from('planes').update({activo:false}).eq('id',id);await tabPlanes();}
+
+async function tabCompras(){
+  const{data:c}=await db.from('compras').select('*').order('created_at',{ascending:false});
+  window._compras=c||[];
+  document.getElementById('adm-content').innerHTML=`
+    <div style="background:#1a1d27;border:1px solid #2a2d3a;border-radius:12px;padding:18px;margin-bottom:20px;">
+      <div style="font-size:14px;font-weight:700;color:#94a3b8;margin-bottom:14px;">Filtros de pagos</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+        <div><div style="font-size:12px;color:#94a3b8;margin-bottom:6px;">Fecha inicial</div><input class="inp" id="cp-fi" type="date" style="width:160px;font-size:15px;" oninput="compFiltrar()"/></div>
+        <div><div style="font-size:12px;color:#94a3b8;margin-bottom:6px;">Fecha final</div><input class="inp" id="cp-ff" type="date" style="width:160px;font-size:15px;" oninput="compFiltrar()"/></div>
+        <div><div style="font-size:12px;color:#94a3b8;margin-bottom:6px;">Cedula</div><input class="inp" id="cp-ced" placeholder="Buscar..." style="width:140px;font-size:15px;" oninput="compFiltrar()"/></div>
+        <div><div style="font-size:12px;color:#94a3b8;margin-bottom:6px;">Nombre</div><input class="inp" id="cp-nom" placeholder="Buscar..." style="width:140px;font-size:15px;" oninput="compFiltrar()"/></div>
+        <div><div style="font-size:12px;color:#94a3b8;margin-bottom:6px;">Plan</div><select class="inp" id="cp-plan" style="width:150px;font-size:14px;" onchange="compFiltrar()"><option value="">Todos</option>${[...new Set((c||[]).map(x=>x.plan))].map(p=>`<option value="${p}">${p}</option>`).join('')}</select></div>
+        <div><div style="font-size:12px;color:#94a3b8;margin-bottom:6px;">Metodo</div><select class="inp" id="cp-met" style="width:150px;font-size:14px;" onchange="compFiltrar()"><option value="">Todos</option>${METODOS.map(m=>`<option value="${m}">${m}</option>`).join('')}</select></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn" style="background:#2B5C79;color:#fff;padding:10px 14px;font-size:13px;width:auto;" onclick="compRango('hoy')">Hoy</button>
+          <button class="btn" style="background:#2B5C79;color:#fff;padding:10px 14px;font-size:13px;width:auto;" onclick="compRango('semana')">Semana</button>
+          <button class="btn" style="background:#2B5C79;color:#fff;padding:10px 14px;font-size:13px;width:auto;" onclick="compRango('mes')">Mes</button>
+          <button class="btn" style="background:#1a1d27;color:#94a3b8;border:1px solid #2a2d3a;padding:10px 14px;font-size:13px;width:auto;" onclick="compLimpiar()">✕</button>
+        </div>
+      </div>
+    </div>
+    <div id="cp-resumen" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px;"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+      <div id="cp-count" style="font-size:13px;color:#94a3b8;"></div>
+      <button class="btn" style="background:#166534;color:#dcfce7;padding:10px 18px;font-size:14px;width:auto;" onclick="exportarCompras()">⬇ Exportar CSV Pagos</button>
+    </div>
+    <div id="cp-tbl" style="overflow-x:auto;"></div>`;
+  compFiltrar();
+}
+function compRango(tipo){const hoy=new Date(),fi=document.getElementById('cp-fi'),ff=document.getElementById('cp-ff');if(tipo==='hoy'){fi.value=ff.value=hoy.toISOString().split('T')[0];}else if(tipo==='semana'){const l=new Date(hoy);l.setDate(hoy.getDate()-hoy.getDay()+1);fi.value=l.toISOString().split('T')[0];ff.value=hoy.toISOString().split('T')[0];}else{fi.value=new Date(hoy.getFullYear(),hoy.getMonth(),1).toISOString().split('T')[0];ff.value=hoy.toISOString().split('T')[0];}compFiltrar();}
+function compLimpiar(){['cp-fi','cp-ff','cp-ced','cp-nom'].forEach(id=>document.getElementById(id).value='');document.getElementById('cp-plan').value='';document.getElementById('cp-met').value='';compFiltrar();}
+function compFiltrar(){
+  const fi=document.getElementById('cp-fi')?.value,ff=document.getElementById('cp-ff')?.value,ced=document.getElementById('cp-ced')?.value||'',nom=(document.getElementById('cp-nom')?.value||'').toLowerCase(),plan=document.getElementById('cp-plan')?.value||'',met=document.getElementById('cp-met')?.value||'';
+  const rows=(window._compras||[]).filter(c=>{
+    if(ced&&!c.cedula.includes(ced))return false;if(nom&&!c.nombre.toLowerCase().includes(nom))return false;if(plan&&c.plan!==plan)return false;if(met&&c.metodo_pago!==met)return false;
+    if(fi&&new Date(c.fecha_compra+'T00:00:00')<new Date(fi+'T00:00:00'))return false;if(ff&&new Date(c.fecha_compra+'T00:00:00')>new Date(ff+'T23:59:59'))return false;return true;
+  });
+  window._compFiltrado=rows;
+  const totalVal=rows.reduce((s,c)=>s+(c.valor_pagado||0),0);
+  const porPlan={};rows.forEach(c=>{porPlan[c.plan]=(porPlan[c.plan]||0)+1;});
+  const porMet={};rows.forEach(c=>{const m=c.metodo_pago||'Otro';porMet[m]=(porMet[m]||0)+(c.valor_pagado||0);});
+  document.getElementById('cp-resumen').innerHTML=[['💰','Total recaudado',pesos(totalVal),'#22c55e'],['🧾','Compras',rows.length,'#00A7BA'],['🏆','Plan top',Object.entries(porPlan).sort((a,b)=>b[1]-a[1])[0]?.[0]||'—','#f59e0b'],['💳','Metodo top',Object.entries(porMet).sort((a,b)=>b[1]-a[1])[0]?.[0]||'—','#82C2A7']].map(([ic,l,v,c])=>`<div class="card" style="border-top:3px solid ${c};text-align:center;"><div style="font-size:20px;margin-bottom:4px;">${ic}</div><div style="font-size:11px;color:#94a3b8;margin-bottom:6px;">${l}</div><div style="font-size:17px;font-weight:800;color:${c};">${v}</div></div>`).join('');
+  document.getElementById('cp-count').textContent=`${rows.length} pagos · Total: ${pesos(totalVal)}`;
+  document.getElementById('cp-tbl').innerHTML=rows.length===0?'<div style="text-align:center;padding:40px;color:#94a3b8;">Sin resultados</div>':`<table><thead><tr><th>Fecha</th><th>Nombre</th><th>Cedula</th><th>Telefono</th><th>Plan</th><th>Ingresos</th><th>Vence</th><th>Valor</th><th>Metodo</th></tr></thead><tbody>${rows.map(c=>`<tr><td>${fmt(c.fecha_compra)}</td><td style="font-weight:600;">${c.nombre}</td><td style="color:#94a3b8;">${c.cedula}</td><td style="color:#94a3b8;">${c.telefono||'—'}</td><td><span style="padding:3px 10px;border-radius:12px;font-size:12px;font-weight:700;background:rgba(0,167,186,0.15);color:#00A7BA;">${c.plan}</span></td><td style="text-align:center;">${c.ingresos_totales===999?'∞':c.ingresos_totales}</td><td>${fmt(c.fecha_vencimiento)}</td><td style="color:#22c55e;font-weight:700;">${pesos(c.valor_pagado)}</td><td style="color:#94a3b8;font-size:12px;">${c.metodo_pago||'—'}</td></tr>`).join('')}</tbody></table>`;
+}
+function exportarCompras(){const rows=window._compFiltrado||window._compras||[];const fi=document.getElementById('cp-fi')?.value||'',ff=document.getElementById('cp-ff')?.value||'';let csv='Fecha,Nombre,Cedula,Telefono,Plan,Ingresos,Vencimiento,Valor,Metodo\n';rows.forEach(c=>{csv+=`${fmt(c.fecha_compra)},"${c.nombre}",${c.cedula},${c.telefono||''},"${c.plan}",${c.ingresos_totales},${fmt(c.fecha_vencimiento)},${c.valor_pagado},"${c.metodo_pago||''}"\n`;});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}));a.download=`pagos_react${fi&&ff?'_'+fi+'_al_'+ff:''}.csv`;a.click();}
+
+async function tabReportes(){
+  const{data:ing}=await db.from('ingresos').select('*').order('fecha_hora',{ascending:false}).limit(2000);
+  window._rep=ing||[];
+  const hoy=new Date().toISOString().split('T')[0];
+  document.getElementById('adm-content').innerHTML=`
+    <div style="background:#1a1d27;border:1px solid #2a2d3a;border-radius:12px;padding:18px;margin-bottom:20px;">
+      <div style="font-size:14px;font-weight:700;color:#94a3b8;margin-bottom:14px;">Filtros de ingresos</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+        <div><div style="font-size:12px;color:#94a3b8;margin-bottom:6px;">Fecha inicial</div><input class="inp" id="r-fi" type="date" value="${hoy}" style="width:160px;font-size:15px;" oninput="repFiltrar()"/></div>
+        <div><div style="font-size:12px;color:#94a3b8;margin-bottom:6px;">Fecha final</div><input class="inp" id="r-ff" type="date" value="${hoy}" style="width:160px;font-size:15px;" oninput="repFiltrar()"/></div>
+        <div><div style="font-size:12px;color:#94a3b8;margin-bottom:6px;">Cedula</div><input class="inp" id="r-ced" placeholder="Buscar..." style="width:140px;font-size:15px;" oninput="repFiltrar()"/></div>
+        <div><div style="font-size:12px;color:#94a3b8;margin-bottom:6px;">Nombre</div><input class="inp" id="r-nom" placeholder="Buscar..." style="width:140px;font-size:15px;" oninput="repFiltrar()"/></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn" style="background:#2B5C79;color:#fff;padding:10px 14px;font-size:13px;width:auto;" onclick="repRango('hoy')">Hoy</button>
+          <button class="btn" style="background:#2B5C79;color:#fff;padding:10px 14px;font-size:13px;width:auto;" onclick="repRango('semana')">Semana</button>
+          <button class="btn" style="background:#2B5C79;color:#fff;padding:10px 14px;font-size:13px;width:auto;" onclick="repRango('mes')">Mes</button>
+          <button class="btn" style="background:#1a1d27;color:#94a3b8;border:1px solid #2a2d3a;padding:10px 14px;font-size:13px;width:auto;" onclick="repLimpiar()">✕</button>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+      <div id="r-count" style="font-size:13px;color:#94a3b8;"></div>
+      <button class="btn" style="background:#166534;color:#dcfce7;padding:10px 18px;font-size:14px;width:auto;" onclick="exportar()">⬇ Exportar CSV Ingresos</button>
+    </div>
+    <div id="r-tbl" style="overflow-x:auto;"></div>`;
+  repFiltrar();
+}
+function repRango(tipo){const hoy=new Date(),fi=document.getElementById('r-fi'),ff=document.getElementById('r-ff');if(tipo==='hoy'){fi.value=ff.value=hoy.toISOString().split('T')[0];}else if(tipo==='semana'){const l=new Date(hoy);l.setDate(hoy.getDate()-hoy.getDay()+1);fi.value=l.toISOString().split('T')[0];ff.value=hoy.toISOString().split('T')[0];}else{fi.value=new Date(hoy.getFullYear(),hoy.getMonth(),1).toISOString().split('T')[0];ff.value=hoy.toISOString().split('T')[0];}repFiltrar();}
+function repLimpiar(){['r-fi','r-ff','r-ced','r-nom'].forEach(id=>document.getElementById(id).value='');repFiltrar();}
+function repFiltrar(){
+  const fi=document.getElementById('r-fi')?.value,ff=document.getElementById('r-ff')?.value,ced=document.getElementById('r-ced')?.value||'',nom=(document.getElementById('r-nom')?.value||'').toLowerCase();
+  const rows=(window._rep||[]).filter(i=>{if(ced&&!i.cedula.includes(ced))return false;if(nom&&!i.nombre.toLowerCase().includes(nom))return false;if(fi&&new Date(i.fecha_hora)<new Date(fi+'T00:00:00'))return false;if(ff&&new Date(i.fecha_hora)>new Date(ff+'T23:59:59'))return false;return true;});
+  window._repFiltrado=rows;
+  document.getElementById('r-count').textContent=rows.length+' registros encontrados';
+  document.getElementById('r-tbl').innerHTML=rows.length===0?'<div style="text-align:center;padding:40px;color:#94a3b8;">Sin resultados</div>':`<table><thead><tr><th>#</th><th>Fecha</th><th>Hora</th><th>Nombre</th><th>Cedula</th><th>Estado</th><th>Firmado</th></tr></thead><tbody>${rows.map(i=>{const d=new Date(i.fecha_hora);return`<tr><td style="color:#94a3b8;">${i.numero_ingreso}</td><td>${d.toLocaleDateString('es-CO')}</td><td>${d.toLocaleTimeString('es-CO')}</td><td style="font-weight:500;">${i.nombre}</td><td style="color:#94a3b8;">${i.cedula}</td><td><span class="pill ${eCol(i.estado_pago)}">${i.estado_pago}</span></td><td style="text-align:center;">${i.firma?'✅':'—'}</td></tr>`;}).join('')}</tbody></table>`;
+}
+function exportar(){const rows=window._repFiltrado||window._rep||[];const fi=document.getElementById('r-fi')?.value||'',ff=document.getElementById('r-ff')?.value||'';let csv='Fecha,Hora,Nombre,Cedula,N Ingreso,Estado,Firmado\n';rows.forEach(i=>{const d=new Date(i.fecha_hora);csv+=d.toLocaleDateString('es-CO')+','+d.toLocaleTimeString('es-CO')+',"'+i.nombre+'",'+i.cedula+','+i.numero_ingreso+','+i.estado_pago+','+(i.firma?'Si':'No')+'\n';});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}));a.download=`ingresos_react${fi&&ff?'_'+fi+'_al_'+ff:''}.csv`;a.click();}
+
+// DASHBOARD
+async function cargarDash(){
+  const ahora=new Date();
+  const hoy=hoyCol(); // fecha local Colombia
+  const desde48=new Date(ahora);
+  desde48.setHours(ahora.getHours()-48);
+
+  const[{count:h},{count:a},{count:v},{count:t},{count:ch},{data:ui},{data:uc}]=await Promise.all([
+    db.from('ingresos').select('*',{count:'exact',head:true}).gte('fecha_hora',hoy+'T00:00:00'),
+    db.from('usuarios').select('*',{count:'exact',head:true}).eq('estado_plan','Vigente'),
+    db.from('usuarios').select('*',{count:'exact',head:true}).neq('estado_plan','Vigente'),
+    db.from('usuarios').select('*',{count:'exact',head:true}),
+    db.from('compras').select('*',{count:'exact',head:true}).eq('fecha_compra',hoy),
+    // Últimas 48h en lugar de solo hoy
+    db.from('ingresos').select('nombre,fecha_hora,firma').gte('fecha_hora',desde48.toISOString()).order('fecha_hora',{ascending:false}).limit(10),
+    db.from('compras').select('nombre,plan,valor_pagado').order('created_at',{ascending:false}).limit(6)
+  ]);
+
+  document.getElementById('dash-stats').innerHTML=[['Ingresos hoy',h||0,'#00A7BA'],['Compras hoy',ch||0,'#22c55e'],['Usuarios activos',a||0,'#22c55e'],['Planes vencidos',v||0,'#ef4444'],['Total usuarios',t||0,'#f59e0b']].map(([l,val,c])=>`<div class="card"><div style="font-size:13px;color:#94a3b8;margin-bottom:8px;">${l}</div><div style="font-size:32px;font-weight:800;color:${c};">${val}</div></div>`).join('');
+
+  const ingRows=!ui?.length?'<div style="color:#94a3b8;text-align:center;padding:16px;">Sin ingresos recientes</div>'
+    :`<table><thead><tr><th>Nombre</th><th>Hora</th><th>Día</th><th>Firma</th></tr></thead><tbody>${ui.map(i=>{
+      const d=new Date(i.fecha_hora);
+      const esHoy=esHoyCol(i.fecha_hora);
+      return`<tr><td style="font-weight:500;">${i.nombre.split(' ').slice(0,2).join(' ')}</td><td style="color:#94a3b8;">${d.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'})}</td><td><span style="font-size:11px;padding:2px 8px;border-radius:10px;background:${esHoy?'rgba(0,167,186,0.15)':'rgba(100,116,139,0.15)'};color:${esHoy?'#00A7BA':'#64748b'};">${esHoy?'Hoy':'Ayer'}</span></td><td style="text-align:center;">${i.firma?'✅':'—'}</td></tr>`;
+    }).join('')}</tbody></table>`;
+
+  document.getElementById('dash-tables').innerHTML=`
+    <div class="card"><div style="font-weight:700;margin-bottom:14px;">Últimos ingresos <span style="font-size:11px;color:#64748b;font-weight:400;">(48 hrs)</span></div>${ingRows}</div>
+    <div class="card"><div style="font-weight:700;margin-bottom:14px;">Últimas compras</div>${!uc?.length?'<div style="color:#94a3b8;text-align:center;padding:16px;">Sin compras</div>':`<table><thead><tr><th>Nombre</th><th>Plan</th><th>Valor</th></tr></thead><tbody>${uc.map(c=>`<tr><td style="font-weight:500;">${c.nombre.split(' ').slice(0,2).join(' ')}</td><td style="color:#94a3b8;font-size:12px;">${c.plan}</td><td style="color:#22c55e;font-weight:600;">${pesos(c.valor_pagado)}</td></tr>`).join('')}</tbody></table>`}</div>`;
+}
+</script>
+</body>
+</html>
++Number(v||0).toLocaleString('es-CO');
+// Genera timestamp en hora local Colombia (UTC-5)
+const nowISO=()=>{
+  const d=new Date();
+  const col=new Date(d.getTime()-(5*60*60*1000));
+  return col.toISOString().replace('Z','');
+};
+const eCol=e=>e==='Vigente'?'pill-green':e==='Vencido'?'pill-red':'pill-amber';
+const nextMonth=()=>{const d=new Date();d.setMonth(d.getMonth()+1);return d.toISOString().split('T')[0];};
+// Fecha local Colombia (UTC-5) en formato YYYY-MM-DD
+const hoyCol=()=>{const d=new Date();const col=new Date(d.getTime()-5*60*60*1000);return col.toISOString().split('T')[0];};
+// Determina si un timestamp ISO es "hoy" en Colombia
+const esHoyCol=iso=>{const d=new Date(iso);return d.toISOString().split('T')[0]===hoyCol();};
+
+// Limpiar campos de contraseña al cargar para prevenir autocompletado residual
+window.addEventListener('load',()=>{
+  document.getElementById('acc-pass').value='';
+  document.getElementById('adm-pass').value='';
+  document.getElementById('acc-pass').focus();
+});
+
+// ACCESO GENERAL
+function verificarAcceso(){
+  const p=document.getElementById('acc-pass').value;
+  if(p===PWD_ACCESO||p===PWD_ADMIN){
+    document.getElementById('pantalla-acceso').style.display='none';
+    if(p===PWD_ADMIN){admLogged=true;}
+    initPlanes();
+  }else{
+    document.getElementById('acc-err').style.display='block';
+    document.getElementById('acc-pass').value='';
+    document.getElementById('acc-pass').focus();
+  }
+}
+
+function showScreen(s){
+  document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
+  document.getElementById('screen-'+s).classList.add('active');
+  if(s==='control')cargarControl();
+  if(s==='dashboard')cargarDash();
+  if(s==='admin'&&admLogged){document.getElementById('adm-login').style.display='none';document.getElementById('adm-panel').style.display='block';cargarAdm();}
+}
+
+// SONIDO
+function sonido(){
+  try{
+    const a=new(window.AudioContext||window.webkitAudioContext)();
+    [[523.25,0,.12],[659.25,.1,.12],[783.99,.2,.12],[1046.5,.3,.22],[783.99,.5,.1],[1046.5,.6,.3]].forEach(([f,t,d])=>{
+      const o=a.createOscillator(),g=a.createGain(),l=a.createOscillator(),lg=a.createGain();
+      o.connect(g);g.connect(a.destination);o.type='sine';o.frequency.setValueAtTime(f,a.currentTime+t);
+      l.connect(lg);lg.connect(o.frequency);l.frequency.setValueAtTime(6,a.currentTime+t);lg.gain.setValueAtTime(8,a.currentTime+t);
+      l.start(a.currentTime+t);l.stop(a.currentTime+t+d+.05);
+      g.gain.setValueAtTime(0,a.currentTime+t);g.gain.linearRampToValueAtTime(.35,a.currentTime+t+.03);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+t+d);
+      o.start(a.currentTime+t);o.stop(a.currentTime+t+d+.05);
+    });
+  }catch(e){}
+}
+
+// RECEPCION
+async function buscarUsuario(){
+  const ced=document.getElementById('rec-cedula').value.trim();
+  if(!ced)return;
+  document.getElementById('rec-btn').textContent='Consultando...';
+  const{data}=await db.from('usuarios').select('*').eq('cedula',ced).maybeSingle();
+  document.getElementById('rec-btn').textContent='Consultar';
+  uActual=data;
+  const r=document.getElementById('rec-result');
+  if(!data){r.innerHTML='<div class="msg msg-err">Usuario no encontrado</div>';return;}
+  const ini=data.nombre.split(' ').map(n=>n[0]).slice(0,2).join('');
+  const ok=data.estado_plan==='Vigente'&&(data.ingresos_restantes>0||data.ingresos_totales===999);
+  r.innerHTML=`<div class="card">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+      <div style="width:52px;height:52px;border-radius:50%;background:#2B5C79;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;">${ini}</div>
+      <div><div style="font-weight:700;font-size:20px;">${data.nombre}</div><div style="color:#94a3b8;font-size:14px;">CC ${data.cedula}</div></div>
+      <span class="pill ${eCol(data.estado_plan)}" style="margin-left:auto;">${data.estado_plan}</span>
+    </div>
+    <div class="grid2" style="margin-bottom:16px;">
+      ${[['Plan',data.plan||'—'],['Compra',fmt(data.fecha_compra)],['Vencimiento',fmt(data.fecha_vencimiento)],['Ingresos rest.',data.ingresos_totales===999?'Ilimitado':data.ingresos_restantes+'/'+data.ingresos_totales]].map(([k,v])=>`<div style="background:#0f1117;border-radius:8px;padding:12px 14px;"><div style="font-size:12px;color:#94a3b8;margin-bottom:3px;">${k}</div><div style="font-weight:700;font-size:18px;">${v}</div></div>`).join('')}
+    </div>
+    ${ok?'<button class="btn btn-green" onclick="abrirFirma()">✅ Aceptar e ingresar → Firma</button>'
+      :`<div class="msg msg-err">${data.estado_plan==='Vencido'?'Plan vencido':data.estado_plan==='Debe pago'?'Debe pago — No se permite':'Sin ingresos disponibles'}</div>`}
+  </div>`;
+}
+
+// FIRMA
+const cv=document.getElementById('firma-cv'),cx=cv.getContext('2d');
+let draw=false;
+const pos=(e,c)=>{const r=c.getBoundingClientRect(),s=e.touches?e.touches[0]:e;return{x:(s.clientX-r.left)*(c.width/r.width),y:(s.clientY-r.top)*(c.height/r.height)};};
+cv.addEventListener('mousedown',e=>{draw=true;const p=pos(e,cv);cx.beginPath();cx.moveTo(p.x,p.y);});
+cv.addEventListener('mousemove',e=>{if(!draw)return;const p=pos(e,cv);cx.lineWidth=2.5;cx.lineCap='round';cx.strokeStyle='#00A7BA';cx.lineTo(p.x,p.y);cx.stroke();cx.beginPath();cx.moveTo(p.x,p.y);});
+cv.addEventListener('mouseup',()=>draw=false);cv.addEventListener('mouseleave',()=>draw=false);
+cv.addEventListener('touchstart',e=>{e.preventDefault();draw=true;const p=pos(e,cv);cx.beginPath();cx.moveTo(p.x,p.y);},{passive:false});
+cv.addEventListener('touchmove',e=>{e.preventDefault();if(!draw)return;const p=pos(e,cv);cx.lineWidth=2.5;cx.lineCap='round';cx.strokeStyle='#00A7BA';cx.lineTo(p.x,p.y);cx.stroke();cx.beginPath();cx.moveTo(p.x,p.y);},{passive:false});
+cv.addEventListener('touchend',e=>{e.preventDefault();draw=false;},{passive:false});
+function abrirFirma(){document.getElementById('firma-lbl').textContent=uActual.nombre+' — firme para confirmar su ingreso';document.getElementById('mod-firma').classList.add('open');limpiarFirma();}
+function limpiarFirma(){cx.clearRect(0,0,cv.width,cv.height);}
+function cerrarFirma(){document.getElementById('mod-firma').classList.remove('open');}
+async function guardarFirma(){
+  const b=document.createElement('canvas');b.width=cv.width;b.height=cv.height;
+  if(cv.toDataURL()===b.toDataURL()){alert('Por favor dibuje su firma.');return;}
+  const firma=cv.toDataURL('image/png');
+  cerrarFirma();
+  const u=uActual,nr=u.ingresos_totales===999?999:u.ingresos_restantes-1;
+  await db.from('usuarios').update({ingresos_restantes:nr}).eq('id',u.id);
+  const{count}=await db.from('ingresos').select('*',{count:'exact',head:true}).eq('usuario_id',u.id);
+  const num=(count||0)+1;
+  await db.from('ingresos').insert([{usuario_id:u.id,nombre:u.nombre,cedula:u.cedula,numero_ingreso:num,estado_pago:u.estado_plan,firma,sede:'Principal',registrado_por:'Recepcion'}]);
+  sonido();
+  document.getElementById('rec-result').innerHTML=`<div class="msg msg-ok">✓ Ingreso #${num} registrado correctamente</div>`;
+  setTimeout(()=>{document.getElementById('rec-cedula').value='';document.getElementById('rec-result').innerHTML='';uActual=null;},3500);
+}
+
+function abrirPwdCompra(){
+  document.getElementById('pwd-compra-inp').value='';
+  document.getElementById('pwd-compra-err').style.display='none';
+  document.getElementById('mod-pwd-compra').classList.add('open');
+  setTimeout(()=>document.getElementById('pwd-compra-inp').focus(),100);
+}
+function cerrarPwdCompra(){
+  document.getElementById('mod-pwd-compra').classList.remove('open');
+}
+async function validarPwdCompra(){
+  const p=document.getElementById('pwd-compra-inp').value;
+  if(p!==PWD_COMPRA){
+    document.getElementById('pwd-compra-err').style.display='block';
+    document.getElementById('pwd-compra-inp').value='';
+    document.getElementById('pwd-compra-inp').focus();
+    return;
+  }
+  cerrarPwdCompra();
+  await confirmarCompra();
+}
+
+// COMPRA
+async function initPlanes(){const{data}=await db.from('planes').select('*').eq('activo',true).order('precio');planes=data||[];}
+function renderPlanes(){
+  const el=document.getElementById('c-planes');if(!el)return;
+  el.innerHTML=planes.map(p=>`<button class="plan-btn${planSel?.id===p.id?' selected':''}" onclick="elegirPlan('${p.id}')">
+    <div style="font-size:17px;font-weight:800;color:${planSel?.id===p.id?'#00A7BA':'#f1f5f9'};margin-bottom:4px;">${p.nombre}</div>
+    <div style="font-size:24px;font-weight:700;color:#22c55e;margin-bottom:4px;">${pesos(p.precio)}</div>
+    <div style="font-size:13px;color:#94a3b8;">${p.ingresos} ingresos · 1 mes</div>
+  </button>`).join('');
+}
+function renderMetodos(){
+  const el=document.getElementById('c-metodos');if(!el)return;
+  el.innerHTML=METODOS.map(m=>`<button class="metodo-btn${metodo===m?' selected':''}" onclick="elegirMetodo('${m}')">${m}</button>`).join('');
+}
+function elegirPlan(id){planSel=planes.find(p=>p.id===id);if(planSel){document.getElementById('c-valor').value=planSel.precio;document.getElementById('c-vence').value=nextMonth();}renderPlanes();}
+function elegirMetodo(m){metodo=m;renderMetodos();}
+function volverStep1(){document.getElementById('c-step1').style.display='block';document.getElementById('c-step2').style.display='none';}
+async function buscarCompra(){
+  const ced=document.getElementById('c-ced').value.trim();if(!ced)return;
+  const{data}=await db.from('usuarios').select('*').eq('cedula',ced).maybeSingle();
+  cUser=data;cIsNew=!data;
+  document.getElementById('c-step1').style.display='none';document.getElementById('c-step2').style.display='block';
+  if(data){document.getElementById('c-nombre').value=data.nombre;document.getElementById('c-tel').value=data.telefono||'';document.getElementById('c-userinfo').innerHTML=`<div style="background:#0f2d1a;border:1px solid #22c55e;border-radius:10px;padding:14px;"><div style="font-weight:700;font-size:17px;">${data.nombre}</div><div style="font-size:13px;color:#94a3b8;">CC ${data.cedula} · Plan: ${data.plan||'—'}</div></div>`;}
+  else{document.getElementById('c-nombre').value='';document.getElementById('c-tel').value='';document.getElementById('c-userinfo').innerHTML='<div style="background:#1e3a5f;border:1px solid #2563eb;border-radius:10px;padding:14px;font-size:14px;color:#93c5fd;">🆕 Usuario nuevo</div>';}
+  if(!planSel&&planes.length>0){planSel=planes[0];document.getElementById('c-valor').value=planes[0].precio;document.getElementById('c-vence').value=nextMonth();}
+  renderPlanes();renderMetodos();
+}
+async function confirmarCompra(){
+  const nombre=document.getElementById('c-nombre').value.trim(),tel=document.getElementById('c-tel').value.trim(),vence=document.getElementById('c-vence').value,valor=parseInt(document.getElementById('c-valor').value)||0;
+  if(!nombre||!planSel||!vence){alert('Completa todos los campos');return;}
+  const hoy=new Date().toISOString().split('T')[0],ced=cIsNew?document.getElementById('c-ced').value.trim():cUser.cedula;
+  let uid;
+  if(cIsNew){const{data:n}=await db.from('usuarios').insert([{nombre,cedula:ced,telefono:tel,fecha_compra:hoy,fecha_vencimiento:vence,ingresos_totales:planSel.ingresos,ingresos_restantes:planSel.ingresos,estado_plan:'Vigente',plan:planSel.nombre}]).select().single();uid=n.id;}
+  else{await db.from('usuarios').update({fecha_compra:hoy,fecha_vencimiento:vence,ingresos_totales:planSel.ingresos,ingresos_restantes:planSel.ingresos,estado_plan:'Vigente',plan:planSel.nombre}).eq('id',cUser.id);uid=cUser.id;}
+  await db.from('compras').insert([{usuario_id:uid,nombre,cedula:ced,telefono:tel,plan:planSel.nombre,fecha_compra:hoy,fecha_vencimiento:vence,ingresos_totales:planSel.ingresos,valor_pagado:valor,metodo_pago:metodo}]);
+  document.getElementById('c-step2').style.display='none';document.getElementById('c-step3').style.display='block';
+  document.getElementById('c-resumen').innerHTML=[['Plan',planSel.nombre],['Vence',fmt(vence)],['Ingresos',planSel.ingresos],['Valor',pesos(valor)],['Metodo',metodo]].map(([k,v])=>`<div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:15px;"><span style="color:#94a3b8;">${k}</span><b>${v}</b></div>`).join('');
+  document.getElementById('c-wa').href='https://wa.me/57'+tel+'?text='+encodeURIComponent(`Hola ${nombre.split(' ')[0]}!\n\n✅ Compra registrada — Re:ACT\n\nPlan: ${planSel.nombre}\nVigente hasta: ${fmt(vence)}\nIngresos: ${planSel.ingresos}\nValor: ${pesos(valor)}\nMetodo: ${metodo}\n\nGracias!`);
+}
+function resetCompra(){document.getElementById('c-step1').style.display='block';document.getElementById('c-step2').style.display='none';document.getElementById('c-step3').style.display='none';document.getElementById('c-ced').value='';planSel=null;metodo='Efectivo';cUser=null;cIsNew=false;}
+
+// CONTROL
+async function cargarControl(){
+  const ahora=new Date();
+  document.getElementById('ctrl-fecha').textContent=ahora.toLocaleDateString('es-CO',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  // Mostrar últimas 48 horas (2 días)
+  const desde=new Date(ahora);
+  desde.setHours(ahora.getHours()-48);
+  const desdeISO=desde.toISOString();
+  const hastaISO=ahora.toISOString();
+
+  // Para stats solo contar hoy
+  const hoy=ahora.toISOString().split('T')[0];
+
+  const[{data:ing},{data:usr}]=await Promise.all([
+    db.from('ingresos').select('*').gte('fecha_hora',desdeISO).lte('fecha_hora',hastaISO).order('fecha_hora',{ascending:false}),
+    db.from('usuarios').select('id,cedula,ingresos_restantes,ingresos_totales')
+  ]);
+
+  // Stats solo del día actual
+  const ingHoy=ing?.filter(i=>i.fecha_hora.startsWith(hoy))||[];
+  const t=ingHoy.length,cf=ingHoy.filter(i=>i.firma).length,v=ingHoy.filter(i=>i.val_iniciales).length;
+
+  document.getElementById('ctrl-stats').innerHTML=[['🏃','Ingresos hoy',t,'#00A7BA'],['✍️','Con firma',cf,'#22c55e'],['⚠️','Sin firma',t-cf,'#f59e0b'],['🎯','Validados',v,'#82C2A7']].map(([ic,l,val,c])=>`<div class="stat-card" style="border-top:3px solid ${c};"><div style="font-size:20px;">${ic}</div><div style="font-size:12px;color:#94a3b8;margin-top:4px;">${l}</div><div style="font-size:32px;font-weight:800;color:${c};margin-top:4px;">${val}</div></div>`).join('');
+
+  if(!ing?.length){document.getElementById('ctrl-tabla').innerHTML='<div style="text-align:center;padding:60px;color:#94a3b8;font-size:16px;">🏋️ Sin ingresos en las últimas 48 horas</div>';return;}
+
+  // Agrupar por día para mostrar separadores
+  let tablaHTML='';
+  let diaActual='';
+  ing.forEach((i,idx)=>{
+    const diaIngreso=i.fecha_hora.split('T')[0];
+    if(diaIngreso!==diaActual){
+      diaActual=diaIngreso;
+      const esHoy=diaIngreso===hoy;
+      const labelDia=esHoy?'📅 HOY — '+new Date(diaIngreso+'T12:00:00').toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long'}):'📅 AYER — '+new Date(diaIngreso+'T12:00:00').toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long'});
+      tablaHTML+=`<tr><td colspan="7" style="background:#0f1117;padding:10px 14px;font-size:12px;font-weight:700;color:${esHoy?'#00A7BA':'#64748b'};letter-spacing:1px;">${labelDia}</td></tr>`;
+    }
+    const u=usr?.find(x=>x.cedula===i.cedula),rest=u?(u.ingresos_totales===999?'Ilimitado':u.ingresos_restantes+' rest.'):'—';
+    const hora=new Date(i.fecha_hora).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});
+    const ini=i.nombre.split(' ').map(n=>n[0]).slice(0,2).join('');
+    const valBtn=i.val_iniciales
+      ?`<div style="display:flex;align-items:center;gap:8px;"><div style="width:34px;height:34px;border-radius:50%;background:#14532d;border:2px solid #22c55e;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#86efac;">${i.val_iniciales}</div><span style="font-size:11px;color:#94a3b8;">${new Date(i.val_fecha_hora).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'})}</span></div>`
+      :i.firma
+        ?`<button class="btn" style="padding:6px 12px;font-size:12px;background:transparent;color:#00A7BA;border:1.5px solid #00A7BA;" onclick="abrirVal('${i.id}','${i.nombre.replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">+ Validar</button>`
+        :'<span style="color:#ef4444;font-size:12px;">Sin firma</span>';
+    tablaHTML+=`<tr><td style="color:#94a3b8;font-weight:600;">${idx+1}</td><td style="color:#94a3b8;">${hora}</td><td><div style="display:flex;align-items:center;gap:10px;"><div style="width:34px;height:34px;border-radius:50%;background:#2B5C79;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;">${ini}</div><span style="font-weight:600;">${i.nombre}</span></div></td><td><span style="padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;background:rgba(0,167,186,0.15);color:#00A7BA;">${rest}</span></td><td style="text-align:center;font-size:18px;">${i.firma?'✅':'⚠️'}</td><td><span class="pill ${i.firma?'pill-green':'pill-amber'}">${i.firma?'Completo':'Sin firma'}</span></td><td>${valBtn}</td></tr>`;
+  });
+
+  document.getElementById('ctrl-tabla').innerHTML=`<table><thead><tr><th>#</th><th>Hora</th><th>Nombre</th><th>Rest.</th><th>Firma</th><th>Estado</th><th>Validacion</th></tr></thead><tbody>${tablaHTML}</tbody></table>`;
+}
+function abrirVal(id,nombre){valId=id;document.getElementById('val-lbl').textContent='Validar ingreso de: '+nombre;document.getElementById('val-ini').value='';document.getElementById('mod-val').classList.add('open');setTimeout(()=>document.getElementById('val-ini').focus(),100);}
+function cerrarVal(){document.getElementById('mod-val').classList.remove('open');}
+async function confirmarVal(){const ini=document.getElementById('val-ini').value.trim().toUpperCase();if(!ini){alert('Ingresa tus iniciales');return;}await db.from('ingresos').update({val_iniciales:ini,val_fecha_hora:nowISO()}).eq('id',valId);cerrarVal();cargarControl();}
+
+// ADMIN
+function loginAdmin(){const p=document.getElementById('adm-pass').value;if(p===PWD_ADMIN){admLogged=true;document.getElementById('adm-login').style.display='none';document.getElementById('adm-panel').style.display='block';cargarAdm();}else document.getElementById('adm-err').style.display='block';}
+function logoutAdmin(){admLogged=false;document.getElementById('adm-panel').style.display='none';document.getElementById('adm-login').style.display='flex';document.getElementById('adm-pass').value='';}
+async function cargarAdm(){
+  document.getElementById('adm-tabs').innerHTML=['usuarios','planes','compras','reportes'].map(t=>`<button class="btn${admTab===t?' btn-primary':''}" style="padding:8px 18px;font-size:14px;${admTab!==t?'background:#1a1d27;color:#94a3b8;border:1px solid #2a2d3a;':''}" onclick="cambiarTab('${t}')">${t.charAt(0).toUpperCase()+t.slice(1)}</button>`).join('');
+  if(admTab==='usuarios')await tabUsuarios();
+  else if(admTab==='planes')await tabPlanes();
+  else if(admTab==='compras')await tabCompras();
+  else await tabReportes();
+}
+function cambiarTab(t){admTab=t;cargarAdm();}
+
+async function tabUsuarios(){
+  const{data:u}=await db.from('usuarios').select('*').order('nombre');
+  document.getElementById('adm-content').innerHTML=`<div style="display:flex;justify-content:flex-end;margin-bottom:14px;"><button class="btn btn-primary" style="width:auto;padding:9px 18px;" onclick="frmUsuario()">+ Nuevo usuario</button></div><div id="frm-u"></div><div style="overflow-x:auto;"><table><thead><tr><th>Nombre</th><th>Cedula</th><th>Plan</th><th>Vence</th><th>Ingresos</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>${(u||[]).map(x=>`<tr><td style="font-weight:500;">${x.nombre}</td><td style="color:#94a3b8;">${x.cedula}</td><td>${x.plan||'—'}</td><td>${fmt(x.fecha_vencimiento)}</td><td style="text-align:center;">${x.ingresos_totales===999?'∞':x.ingresos_restantes+'/'+x.ingresos_totales}</td><td><span class="pill ${eCol(x.estado_plan)}">${x.estado_plan}</span></td><td style="white-space:nowrap;"><button class="btn" style="padding:5px 9px;font-size:11px;background:#1a1d27;color:#00A7BA;border:1px solid #00A7BA;margin-right:3px;" onclick='frmUsuario(${JSON.stringify(x).replace(/"/g,"&quot;")})'>Editar</button><button class="btn" style="padding:5px 9px;font-size:11px;background:#1a1d27;color:#00A7BA;border:1px solid #00A7BA;margin-right:3px;" onclick='frmAmpliar(${JSON.stringify(x).replace(/"/g,"&quot;")})'>📅</button><button class="btn" style="padding:5px 9px;font-size:11px;background:#1a1d27;color:#ef4444;border:1px solid #ef4444;" onclick="delUsuario('${x.id}')">Eliminar</button></td></tr>`).join('')}</tbody></table></div>`;
+}
+function frmUsuario(u){document.getElementById('frm-u').innerHTML=`<div class="card" style="margin-bottom:16px;"><div style="font-weight:700;margin-bottom:14px;">${u?'Editar':'Nuevo'} usuario</div><input type="hidden" id="fu-id" value="${u?.id||''}"/><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">${[['fu-nom','Nombre','text',u?.nombre||''],['fu-ced','Cedula','text',u?.cedula||''],['fu-tel','Telefono','text',u?.telefono||''],['fu-cp','Fecha compra','date',u?.fecha_compra||''],['fu-vc','Fecha vence','date',u?.fecha_vencimiento||'']].map(([id,l,t,v])=>`<div><div style="font-size:12px;color:#94a3b8;margin-bottom:4px;">${l}</div><input class="inp" id="${id}" type="${t}" value="${v}" style="background:#0f1117;font-size:15px;"/></div>`).join('')}<div><div style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Plan</div><select class="inp" id="fu-plan" style="background:#0f1117;font-size:15px;">${planes.map(p=>`<option${u?.plan===p.nombre?' selected':''}>${p.nombre}</option>`).join('')}</select></div><div><div style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Estado</div><select class="inp" id="fu-est" style="background:#0f1117;font-size:15px;">${['Vigente','Vencido','Debe pago'].map(e=>`<option${u?.estado_plan===e?' selected':''}>${e}</option>`).join('')}</select></div><div><div style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Ingresos totales</div><input class="inp" id="fu-it" type="number" value="${u?.ingresos_totales||8}" style="background:#0f1117;font-size:15px;"/></div><div><div style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Ingresos restantes</div><input class="inp" id="fu-ir" type="number" value="${u?.ingresos_restantes||8}" style="background:#0f1117;font-size:15px;"/></div></div><div style="display:flex;gap:10px;"><button class="btn btn-primary" style="width:auto;padding:10px 22px;" onclick="saveUsuario()">Guardar</button><button class="btn" style="width:auto;padding:10px 22px;background:#1a1d27;color:#94a3b8;border:1px solid #2a2d3a;" onclick="document.getElementById('frm-u').innerHTML=''">Cancelar</button></div></div>`;}
+async function saveUsuario(){const id=document.getElementById('fu-id').value;const f={nombre:document.getElementById('fu-nom').value,cedula:document.getElementById('fu-ced').value,telefono:document.getElementById('fu-tel').value,fecha_compra:document.getElementById('fu-cp').value,fecha_vencimiento:document.getElementById('fu-vc').value,plan:document.getElementById('fu-plan').value,estado_plan:document.getElementById('fu-est').value,ingresos_totales:+document.getElementById('fu-it').value,ingresos_restantes:+document.getElementById('fu-ir').value};if(id)await db.from('usuarios').update(f).eq('id',id);else await db.from('usuarios').insert([f]);await tabUsuarios();}
+async function delUsuario(id){if(!confirm('¿Eliminar?'))return;await db.from('usuarios').delete().eq('id',id);await tabUsuarios();}
+function frmAmpliar(u){document.getElementById('frm-u').innerHTML=`<div class="card" style="margin-bottom:16px;border-top:3px solid #00A7BA;"><div style="font-weight:700;margin-bottom:4px;">Ampliar vencimiento</div><div style="font-size:13px;color:#94a3b8;margin-bottom:14px;">${u.nombre} · Vence: <b style="color:#ef4444;">${fmt(u.fecha_vencimiento)}</b></div><input type="hidden" id="ap-id" value="${u.id}"/><input type="hidden" id="ap-ant" value="${u.fecha_vencimiento}"/><input type="hidden" id="ap-nom" value="${u.nombre}"/><div style="margin-bottom:12px;"><div style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Nueva fecha</div><input class="inp" id="ap-nf" type="date" min="${u.fecha_vencimiento}" style="background:#0f1117;font-size:15px;"/></div><div style="margin-bottom:14px;"><div style="font-size:12px;color:#94a3b8;margin-bottom:8px;">Motivo *</div><div style="display:flex;flex-wrap:wrap;gap:8px;">${MOTIVOS.map(m=>`<button class="metodo-btn" onclick="selMot(this,'${m}')">${m}</button>`).join('')}</div><input class="inp" id="ap-mot-txt" placeholder="Escribe el motivo..." style="margin-top:8px;display:none;font-size:15px;"/><input type="hidden" id="ap-mot" value=""/></div><div style="display:flex;gap:10px;"><button class="btn btn-green" style="flex:2;" onclick="saveAmpliar()">✅ Ampliar</button><button class="btn" style="flex:1;background:#1a1d27;color:#94a3b8;border:1px solid #2a2d3a;" onclick="document.getElementById('frm-u').innerHTML=''">Cancelar</button></div></div>`;}
+function selMot(btn,m){document.querySelectorAll('#frm-u .metodo-btn').forEach(b=>b.classList.remove('selected'));btn.classList.add('selected');document.getElementById('ap-mot').value=m;document.getElementById('ap-mot-txt').style.display=m==='Otro'?'block':'none';}
+async function saveAmpliar(){const id=document.getElementById('ap-id').value,ant=document.getElementById('ap-ant').value,nom=document.getElementById('ap-nom').value,nf=document.getElementById('ap-nf').value;let mot=document.getElementById('ap-mot').value;if(mot==='Otro')mot=document.getElementById('ap-mot-txt').value.trim();if(!nf){alert('Selecciona la nueva fecha');return;}if(!mot){alert('El motivo es obligatorio');return;}if(new Date(nf)<=new Date(ant)){alert('La fecha debe ser posterior');return;}await db.from('usuarios').update({fecha_vencimiento:nf,estado_plan:'Vigente'}).eq('id',id);await db.from('ampliaciones').insert([{usuario_id:id,nombre_usuario:nom,fecha_anterior:ant,nueva_fecha:nf,motivo:mot,admin:'admin',fecha_hora:nowISO()}]);alert('Vencimiento ampliado');await tabUsuarios();}
+
+async function tabPlanes(){
+  const{data:pl}=await db.from('planes').select('*').eq('activo',true).order('precio');
+  document.getElementById('adm-content').innerHTML=`<div style="display:flex;justify-content:flex-end;margin-bottom:14px;"><button class="btn btn-primary" style="width:auto;padding:9px 18px;" onclick="frmPlan()">+ Nuevo plan</button></div><div id="frm-p"></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;">${(pl||[]).map(p=>`<div class="card"><div style="font-weight:700;font-size:16px;margin-bottom:10px;">${p.nombre}</div><div style="font-size:14px;color:#94a3b8;margin-bottom:4px;">Ingresos: <b style="color:#f1f5f9;">${p.ingresos}</b></div><div style="font-size:14px;color:#94a3b8;margin-bottom:4px;">Duracion: <b style="color:#f1f5f9;">${p.duracion} dias</b></div><div style="font-size:14px;color:#94a3b8;margin-bottom:14px;">Precio: <b style="color:#22c55e;">${pesos(p.precio)}</b></div><div style="display:flex;gap:8px;"><button class="btn" style="flex:1;padding:7px 0;font-size:12px;background:#1a1d27;color:#00A7BA;border:1px solid #00A7BA;" onclick='frmPlan(${JSON.stringify(p).replace(/"/g,"&quot;")})'>Editar</button><button class="btn" style="flex:1;padding:7px 0;font-size:12px;background:#1a1d27;color:#ef4444;border:1px solid #ef4444;" onclick="delPlan('${p.id}')">Eliminar</button></div></div>`).join('')}</div>`;
+}
+function frmPlan(p){document.getElementById('frm-p').innerHTML=`<div class="card" style="margin-bottom:16px;"><div style="font-weight:700;margin-bottom:14px;">${p?'Editar':'Nuevo'} plan</div><input type="hidden" id="fp-id" value="${p?.id||''}"/><div class="grid2" style="gap:10px;margin-bottom:14px;">${[['fp-nom','Nombre','text',p?.nombre||''],['fp-ing','Ingresos','number',p?.ingresos||0],['fp-dur','Duracion (dias)','number',p?.duracion||30],['fp-pre','Precio ($)','number',p?.precio||0]].map(([id,l,t,v])=>`<div><div style="font-size:12px;color:#94a3b8;margin-bottom:4px;">${l}</div><input class="inp" id="${id}" type="${t}" value="${v}" style="background:#0f1117;font-size:15px;"/></div>`).join('')}</div><div style="display:flex;gap:10px;"><button class="btn btn-primary" style="width:auto;padding:10px 22px;" onclick="savePlan()">Guardar</button><button class="btn" style="width:auto;padding:10px 22px;background:#1a1d27;color:#94a3b8;border:1px solid #2a2d3a;" onclick="document.getElementById('frm-p').innerHTML=''">Cancelar</button></div></div>`;}
+async function savePlan(){const id=document.getElementById('fp-id').value;const f={nombre:document.getElementById('fp-nom').value,ingresos:+document.getElementById('fp-ing').value,duracion:+document.getElementById('fp-dur').value,precio:+document.getElementById('fp-pre').value,activo:true};if(id)await db.from('planes').update(f).eq('id',id);else await db.from('planes').insert([f]);await initPlanes();await tabPlanes();}
+async function delPlan(id){if(!confirm('¿Eliminar?'))return;await db.from('planes').update({activo:false}).eq('id',id);await tabPlanes();}
+
+async function tabCompras(){
+  const{data:c}=await db.from('compras').select('*').order('created_at',{ascending:false});
+  window._compras=c||[];
+  document.getElementById('adm-content').innerHTML=`
+    <div style="background:#1a1d27;border:1px solid #2a2d3a;border-radius:12px;padding:18px;margin-bottom:20px;">
+      <div style="font-size:14px;font-weight:700;color:#94a3b8;margin-bottom:14px;">Filtros de pagos</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+        <div><div style="font-size:12px;color:#94a3b8;margin-bottom:6px;">Fecha inicial</div><input class="inp" id="cp-fi" type="date" style="width:160px;font-size:15px;" oninput="compFiltrar()"/></div>
+        <div><div style="font-size:12px;color:#94a3b8;margin-bottom:6px;">Fecha final</div><input class="inp" id="cp-ff" type="date" style="width:160px;font-size:15px;" oninput="compFiltrar()"/></div>
+        <div><div style="font-size:12px;color:#94a3b8;margin-bottom:6px;">Cedula</div><input class="inp" id="cp-ced" placeholder="Buscar..." style="width:140px;font-size:15px;" oninput="compFiltrar()"/></div>
+        <div><div style="font-size:12px;color:#94a3b8;margin-bottom:6px;">Nombre</div><input class="inp" id="cp-nom" placeholder="Buscar..." style="width:140px;font-size:15px;" oninput="compFiltrar()"/></div>
+        <div><div style="font-size:12px;color:#94a3b8;margin-bottom:6px;">Plan</div><select class="inp" id="cp-plan" style="width:150px;font-size:14px;" onchange="compFiltrar()"><option value="">Todos</option>${[...new Set((c||[]).map(x=>x.plan))].map(p=>`<option value="${p}">${p}</option>`).join('')}</select></div>
+        <div><div style="font-size:12px;color:#94a3b8;margin-bottom:6px;">Metodo</div><select class="inp" id="cp-met" style="width:150px;font-size:14px;" onchange="compFiltrar()"><option value="">Todos</option>${METODOS.map(m=>`<option value="${m}">${m}</option>`).join('')}</select></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn" style="background:#2B5C79;color:#fff;padding:10px 14px;font-size:13px;width:auto;" onclick="compRango('hoy')">Hoy</button>
+          <button class="btn" style="background:#2B5C79;color:#fff;padding:10px 14px;font-size:13px;width:auto;" onclick="compRango('semana')">Semana</button>
+          <button class="btn" style="background:#2B5C79;color:#fff;padding:10px 14px;font-size:13px;width:auto;" onclick="compRango('mes')">Mes</button>
+          <button class="btn" style="background:#1a1d27;color:#94a3b8;border:1px solid #2a2d3a;padding:10px 14px;font-size:13px;width:auto;" onclick="compLimpiar()">✕</button>
+        </div>
+      </div>
+    </div>
+    <div id="cp-resumen" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px;"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+      <div id="cp-count" style="font-size:13px;color:#94a3b8;"></div>
+      <button class="btn" style="background:#166534;color:#dcfce7;padding:10px 18px;font-size:14px;width:auto;" onclick="exportarCompras()">⬇ Exportar CSV Pagos</button>
+    </div>
+    <div id="cp-tbl" style="overflow-x:auto;"></div>`;
+  compFiltrar();
+}
+function compRango(tipo){const hoy=new Date(),fi=document.getElementById('cp-fi'),ff=document.getElementById('cp-ff');if(tipo==='hoy'){fi.value=ff.value=hoy.toISOString().split('T')[0];}else if(tipo==='semana'){const l=new Date(hoy);l.setDate(hoy.getDate()-hoy.getDay()+1);fi.value=l.toISOString().split('T')[0];ff.value=hoy.toISOString().split('T')[0];}else{fi.value=new Date(hoy.getFullYear(),hoy.getMonth(),1).toISOString().split('T')[0];ff.value=hoy.toISOString().split('T')[0];}compFiltrar();}
+function compLimpiar(){['cp-fi','cp-ff','cp-ced','cp-nom'].forEach(id=>document.getElementById(id).value='');document.getElementById('cp-plan').value='';document.getElementById('cp-met').value='';compFiltrar();}
+function compFiltrar(){
+  const fi=document.getElementById('cp-fi')?.value,ff=document.getElementById('cp-ff')?.value,ced=document.getElementById('cp-ced')?.value||'',nom=(document.getElementById('cp-nom')?.value||'').toLowerCase(),plan=document.getElementById('cp-plan')?.value||'',met=document.getElementById('cp-met')?.value||'';
+  const rows=(window._compras||[]).filter(c=>{
+    if(ced&&!c.cedula.includes(ced))return false;if(nom&&!c.nombre.toLowerCase().includes(nom))return false;if(plan&&c.plan!==plan)return false;if(met&&c.metodo_pago!==met)return false;
+    if(fi&&new Date(c.fecha_compra+'T00:00:00')<new Date(fi+'T00:00:00'))return false;if(ff&&new Date(c.fecha_compra+'T00:00:00')>new Date(ff+'T23:59:59'))return false;return true;
+  });
+  window._compFiltrado=rows;
+  const totalVal=rows.reduce((s,c)=>s+(c.valor_pagado||0),0);
+  const porPlan={};rows.forEach(c=>{porPlan[c.plan]=(porPlan[c.plan]||0)+1;});
+  const porMet={};rows.forEach(c=>{const m=c.metodo_pago||'Otro';porMet[m]=(porMet[m]||0)+(c.valor_pagado||0);});
+  document.getElementById('cp-resumen').innerHTML=[['💰','Total recaudado',pesos(totalVal),'#22c55e'],['🧾','Compras',rows.length,'#00A7BA'],['🏆','Plan top',Object.entries(porPlan).sort((a,b)=>b[1]-a[1])[0]?.[0]||'—','#f59e0b'],['💳','Metodo top',Object.entries(porMet).sort((a,b)=>b[1]-a[1])[0]?.[0]||'—','#82C2A7']].map(([ic,l,v,c])=>`<div class="card" style="border-top:3px solid ${c};text-align:center;"><div style="font-size:20px;margin-bottom:4px;">${ic}</div><div style="font-size:11px;color:#94a3b8;margin-bottom:6px;">${l}</div><div style="font-size:17px;font-weight:800;color:${c};">${v}</div></div>`).join('');
+  document.getElementById('cp-count').textContent=`${rows.length} pagos · Total: ${pesos(totalVal)}`;
+  document.getElementById('cp-tbl').innerHTML=rows.length===0?'<div style="text-align:center;padding:40px;color:#94a3b8;">Sin resultados</div>':`<table><thead><tr><th>Fecha</th><th>Nombre</th><th>Cedula</th><th>Telefono</th><th>Plan</th><th>Ingresos</th><th>Vence</th><th>Valor</th><th>Metodo</th></tr></thead><tbody>${rows.map(c=>`<tr><td>${fmt(c.fecha_compra)}</td><td style="font-weight:600;">${c.nombre}</td><td style="color:#94a3b8;">${c.cedula}</td><td style="color:#94a3b8;">${c.telefono||'—'}</td><td><span style="padding:3px 10px;border-radius:12px;font-size:12px;font-weight:700;background:rgba(0,167,186,0.15);color:#00A7BA;">${c.plan}</span></td><td style="text-align:center;">${c.ingresos_totales===999?'∞':c.ingresos_totales}</td><td>${fmt(c.fecha_vencimiento)}</td><td style="color:#22c55e;font-weight:700;">${pesos(c.valor_pagado)}</td><td style="color:#94a3b8;font-size:12px;">${c.metodo_pago||'—'}</td></tr>`).join('')}</tbody></table>`;
+}
+function exportarCompras(){const rows=window._compFiltrado||window._compras||[];const fi=document.getElementById('cp-fi')?.value||'',ff=document.getElementById('cp-ff')?.value||'';let csv='Fecha,Nombre,Cedula,Telefono,Plan,Ingresos,Vencimiento,Valor,Metodo\n';rows.forEach(c=>{csv+=`${fmt(c.fecha_compra)},"${c.nombre}",${c.cedula},${c.telefono||''},"${c.plan}",${c.ingresos_totales},${fmt(c.fecha_vencimiento)},${c.valor_pagado},"${c.metodo_pago||''}"\n`;});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}));a.download=`pagos_react${fi&&ff?'_'+fi+'_al_'+ff:''}.csv`;a.click();}
+
+async function tabReportes(){
+  const{data:ing}=await db.from('ingresos').select('*').order('fecha_hora',{ascending:false}).limit(2000);
+  window._rep=ing||[];
+  const hoy=new Date().toISOString().split('T')[0];
+  document.getElementById('adm-content').innerHTML=`
+    <div style="background:#1a1d27;border:1px solid #2a2d3a;border-radius:12px;padding:18px;margin-bottom:20px;">
+      <div style="font-size:14px;font-weight:700;color:#94a3b8;margin-bottom:14px;">Filtros de ingresos</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+        <div><div style="font-size:12px;color:#94a3b8;margin-bottom:6px;">Fecha inicial</div><input class="inp" id="r-fi" type="date" value="${hoy}" style="width:160px;font-size:15px;" oninput="repFiltrar()"/></div>
+        <div><div style="font-size:12px;color:#94a3b8;margin-bottom:6px;">Fecha final</div><input class="inp" id="r-ff" type="date" value="${hoy}" style="width:160px;font-size:15px;" oninput="repFiltrar()"/></div>
+        <div><div style="font-size:12px;color:#94a3b8;margin-bottom:6px;">Cedula</div><input class="inp" id="r-ced" placeholder="Buscar..." style="width:140px;font-size:15px;" oninput="repFiltrar()"/></div>
+        <div><div style="font-size:12px;color:#94a3b8;margin-bottom:6px;">Nombre</div><input class="inp" id="r-nom" placeholder="Buscar..." style="width:140px;font-size:15px;" oninput="repFiltrar()"/></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn" style="background:#2B5C79;color:#fff;padding:10px 14px;font-size:13px;width:auto;" onclick="repRango('hoy')">Hoy</button>
+          <button class="btn" style="background:#2B5C79;color:#fff;padding:10px 14px;font-size:13px;width:auto;" onclick="repRango('semana')">Semana</button>
+          <button class="btn" style="background:#2B5C79;color:#fff;padding:10px 14px;font-size:13px;width:auto;" onclick="repRango('mes')">Mes</button>
+          <button class="btn" style="background:#1a1d27;color:#94a3b8;border:1px solid #2a2d3a;padding:10px 14px;font-size:13px;width:auto;" onclick="repLimpiar()">✕</button>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+      <div id="r-count" style="font-size:13px;color:#94a3b8;"></div>
+      <button class="btn" style="background:#166534;color:#dcfce7;padding:10px 18px;font-size:14px;width:auto;" onclick="exportar()">⬇ Exportar CSV Ingresos</button>
+    </div>
+    <div id="r-tbl" style="overflow-x:auto;"></div>`;
+  repFiltrar();
+}
+function repRango(tipo){const hoy=new Date(),fi=document.getElementById('r-fi'),ff=document.getElementById('r-ff');if(tipo==='hoy'){fi.value=ff.value=hoy.toISOString().split('T')[0];}else if(tipo==='semana'){const l=new Date(hoy);l.setDate(hoy.getDate()-hoy.getDay()+1);fi.value=l.toISOString().split('T')[0];ff.value=hoy.toISOString().split('T')[0];}else{fi.value=new Date(hoy.getFullYear(),hoy.getMonth(),1).toISOString().split('T')[0];ff.value=hoy.toISOString().split('T')[0];}repFiltrar();}
+function repLimpiar(){['r-fi','r-ff','r-ced','r-nom'].forEach(id=>document.getElementById(id).value='');repFiltrar();}
+function repFiltrar(){
+  const fi=document.getElementById('r-fi')?.value,ff=document.getElementById('r-ff')?.value,ced=document.getElementById('r-ced')?.value||'',nom=(document.getElementById('r-nom')?.value||'').toLowerCase();
+  const rows=(window._rep||[]).filter(i=>{if(ced&&!i.cedula.includes(ced))return false;if(nom&&!i.nombre.toLowerCase().includes(nom))return false;if(fi&&new Date(i.fecha_hora)<new Date(fi+'T00:00:00'))return false;if(ff&&new Date(i.fecha_hora)>new Date(ff+'T23:59:59'))return false;return true;});
+  window._repFiltrado=rows;
+  document.getElementById('r-count').textContent=rows.length+' registros encontrados';
+  document.getElementById('r-tbl').innerHTML=rows.length===0?'<div style="text-align:center;padding:40px;color:#94a3b8;">Sin resultados</div>':`<table><thead><tr><th>#</th><th>Fecha</th><th>Hora</th><th>Nombre</th><th>Cedula</th><th>Estado</th><th>Firmado</th></tr></thead><tbody>${rows.map(i=>{const d=new Date(i.fecha_hora);return`<tr><td style="color:#94a3b8;">${i.numero_ingreso}</td><td>${d.toLocaleDateString('es-CO')}</td><td>${d.toLocaleTimeString('es-CO')}</td><td style="font-weight:500;">${i.nombre}</td><td style="color:#94a3b8;">${i.cedula}</td><td><span class="pill ${eCol(i.estado_pago)}">${i.estado_pago}</span></td><td style="text-align:center;">${i.firma?'✅':'—'}</td></tr>`;}).join('')}</tbody></table>`;
+}
+function exportar(){const rows=window._repFiltrado||window._rep||[];const fi=document.getElementById('r-fi')?.value||'',ff=document.getElementById('r-ff')?.value||'';let csv='Fecha,Hora,Nombre,Cedula,N Ingreso,Estado,Firmado\n';rows.forEach(i=>{const d=new Date(i.fecha_hora);csv+=d.toLocaleDateString('es-CO')+','+d.toLocaleTimeString('es-CO')+',"'+i.nombre+'",'+i.cedula+','+i.numero_ingreso+','+i.estado_pago+','+(i.firma?'Si':'No')+'\n';});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}));a.download=`ingresos_react${fi&&ff?'_'+fi+'_al_'+ff:''}.csv`;a.click();}
+
+// DASHBOARD
+async function cargarDash(){
+  const ahora=new Date();
+  const hoy=hoyCol(); // fecha local Colombia
+  const desde48=new Date(ahora);
+  desde48.setHours(ahora.getHours()-48);
+
+  const[{count:h},{count:a},{count:v},{count:t},{count:ch},{data:ui},{data:uc}]=await Promise.all([
+    db.from('ingresos').select('*',{count:'exact',head:true}).gte('fecha_hora',hoy+'T05:00:00Z'), // 00:00 Colombia = 05:00 UTC
+    db.from('usuarios').select('*',{count:'exact',head:true}).eq('estado_plan','Vigente'),
+    db.from('usuarios').select('*',{count:'exact',head:true}).neq('estado_plan','Vigente'),
+    db.from('usuarios').select('*',{count:'exact',head:true}),
+    db.from('compras').select('*',{count:'exact',head:true}).eq('fecha_compra',hoy),
+    // Últimas 48h en lugar de solo hoy
+    db.from('ingresos').select('nombre,fecha_hora,firma').gte('fecha_hora',desde48.toISOString()).order('fecha_hora',{ascending:false}).limit(10),
+    db.from('compras').select('nombre,plan,valor_pagado').order('created_at',{ascending:false}).limit(6)
+  ]);
+
+  document.getElementById('dash-stats').innerHTML=[['Ingresos hoy',h||0,'#00A7BA'],['Compras hoy',ch||0,'#22c55e'],['Usuarios activos',a||0,'#22c55e'],['Planes vencidos',v||0,'#ef4444'],['Total usuarios',t||0,'#f59e0b']].map(([l,val,c])=>`<div class="card"><div style="font-size:13px;color:#94a3b8;margin-bottom:8px;">${l}</div><div style="font-size:32px;font-weight:800;color:${c};">${val}</div></div>`).join('');
+
+  const ingRows=!ui?.length?'<div style="color:#94a3b8;text-align:center;padding:16px;">Sin ingresos recientes</div>'
+    :`<table><thead><tr><th>Nombre</th><th>Hora</th><th>Día</th><th>Firma</th></tr></thead><tbody>${ui.map(i=>{
+      const d=new Date(i.fecha_hora);
+      const esHoy=i.fecha_hora.startsWith(hoy);
+      return`<tr><td style="font-weight:500;">${i.nombre.split(' ').slice(0,2).join(' ')}</td><td style="color:#94a3b8;">${d.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'})}</td><td><span style="font-size:11px;padding:2px 8px;border-radius:10px;background:${esHoy?'rgba(0,167,186,0.15)':'rgba(100,116,139,0.15)'};color:${esHoy?'#00A7BA':'#64748b'};">${esHoy?'Hoy':'Ayer'}</span></td><td style="text-align:center;">${i.firma?'✅':'—'}</td></tr>`;
+    }).join('')}</tbody></table>`;
+
+  document.getElementById('dash-tables').innerHTML=`
+    <div class="card"><div style="font-weight:700;margin-bottom:14px;">Últimos ingresos <span style="font-size:11px;color:#64748b;font-weight:400;">(48 hrs)</span></div>${ingRows}</div>
+    <div class="card"><div style="font-weight:700;margin-bottom:14px;">Últimas compras</div>${!uc?.length?'<div style="color:#94a3b8;text-align:center;padding:16px;">Sin compras</div>':`<table><thead><tr><th>Nombre</th><th>Plan</th><th>Valor</th></tr></thead><tbody>${uc.map(c=>`<tr><td style="font-weight:500;">${c.nombre.split(' ').slice(0,2).join(' ')}</td><td style="color:#94a3b8;font-size:12px;">${c.plan}</td><td style="color:#22c55e;font-weight:600;">${pesos(c.valor_pagado)}</td></tr>`).join('')}</tbody></table>`}</div>`;
+}
+</script>
+</body>
+</html>
