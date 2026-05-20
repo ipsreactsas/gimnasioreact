@@ -233,20 +233,22 @@ function eCol(e){ return e === 'Vigente' ? 'pill-green' : e === 'Vencido' ? 'pil
 function nextMonth(){ var d = new Date(); d.setMonth(d.getMonth()+1); return d.toISOString().split('T')[0]; }
 
 function nowISO(){
-  var d = new Date();
+  // Obtener hora actual en Colombia (UTC-5) independiente del dispositivo
+  var utc = new Date();
+  var col = new Date(utc.getTime() + (utc.getTimezoneOffset() * 60000) - (5 * 3600000));
   var pad = function(n){ return String(n).padStart(2,'0'); };
-  // Incluir offset -05:00 de Colombia explicitamente
-  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds())+'-05:00';
+  return col.getFullYear()+'-'+pad(col.getMonth()+1)+'-'+pad(col.getDate())+'T'+pad(col.getHours())+':'+pad(col.getMinutes())+':'+pad(col.getSeconds())+'-05:00';
 }
 
 function hoyCol(){
-  var d = new Date();
+  var utc = new Date();
+  var col = new Date(utc.getTime() + (utc.getTimezoneOffset() * 60000) - (5 * 3600000));
   var pad = function(n){ return String(n).padStart(2,'0'); };
-  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  return col.getFullYear()+'-'+pad(col.getMonth()+1)+'-'+pad(col.getDate());
 }
 
 function esHoyCol(iso){
-  return iso.split('T')[0] === hoyCol();
+  return iso.substring(0,10) === hoyCol();
 }
 
 // ACCESO
