@@ -235,7 +235,8 @@ function nextMonth(){ var d = new Date(); d.setMonth(d.getMonth()+1); return d.t
 function nowISO(){
   var d = new Date();
   var pad = function(n){ return String(n).padStart(2,'0'); };
-  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());
+  // Incluir offset -05:00 de Colombia explicitamente
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds())+'-05:00';
 }
 
 function hoyCol(){
@@ -533,7 +534,7 @@ async function cargarControl(){
     }
     var u = usr.find(function(x){ return x.cedula === i.cedula; });
     var rest = u ? (u.ingresos_totales===999 ? 'Ilimitado' : u.ingresos_restantes+' rest.') : '--';
-    var hora = new Date(i.fecha_hora).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});
+    var hora = new Date(i.fecha_hora).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',timeZone:'America/Bogota'});
     var ini = i.nombre.split(' ').map(function(n){ return n[0]; }).slice(0,2).join('');
     var valBtn;
     if(i.val_iniciales){
@@ -771,7 +772,7 @@ async function cargarDash(){
   var h=res[0].count||0, a=res[1].count||0, v=res[2].count||0, t=res[3].count||0, ch=res[4].count||0, ui=res[5].data||[], uc=res[6].data||[];
   document.getElementById('dash-stats').innerHTML = [['Ingresos hoy',h,'#00A7BA'],['Compras hoy',ch,'#22c55e'],['Usuarios activos',a,'#22c55e'],['Planes vencidos',v,'#ef4444'],['Total usuarios',t,'#f59e0b']].map(function(s){ return '<div class="card"><div style="font-size:13px;color:#94a3b8;margin-bottom:8px;">'+s[0]+'</div><div style="font-size:32px;font-weight:800;color:'+s[2]+';">'+s[1]+'</div></div>'; }).join('');
   var ingRows = ui.length===0 ? '<div style="color:#94a3b8;text-align:center;padding:16px;">Sin ingresos recientes</div>'
-    : '<table><thead><tr><th>Nombre</th><th>Hora</th><th>Dia</th><th>Firma</th></tr></thead><tbody>'+ui.map(function(i){ var d=new Date(i.fecha_hora); var esHoy=esHoyCol(i.fecha_hora); return '<tr><td style="font-weight:500;">'+i.nombre.split(' ').slice(0,2).join(' ')+'</td><td style="color:#94a3b8;">'+d.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'})+'</td><td><span style="font-size:11px;padding:2px 8px;border-radius:10px;background:'+(esHoy?'rgba(0,167,186,0.15)':'rgba(100,116,139,0.15)')+';color:'+(esHoy?'#00A7BA':'#64748b')+';">'+(esHoy?'Hoy':'Ayer')+'</span></td><td style="text-align:center;">'+(i.firma?'&#10003;':'--')+'</td></tr>'; }).join('')+'</tbody></table>';
+    : '<table><thead><tr><th>Nombre</th><th>Hora</th><th>Dia</th><th>Firma</th></tr></thead><tbody>'+ui.map(function(i){ var d=new Date(i.fecha_hora); var esHoy=esHoyCol(i.fecha_hora); return '<tr><td style="font-weight:500;">'+i.nombre.split(' ').slice(0,2).join(' ')+'</td><td style="color:#94a3b8;">'+d.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',timeZone:'America/Bogota'})+'</td><td><span style="font-size:11px;padding:2px 8px;border-radius:10px;background:'+(esHoy?'rgba(0,167,186,0.15)':'rgba(100,116,139,0.15)')+';color:'+(esHoy?'#00A7BA':'#64748b')+';">'+(esHoy?'Hoy':'Ayer')+'</span></td><td style="text-align:center;">'+(i.firma?'&#10003;':'--')+'</td></tr>'; }).join('')+'</tbody></table>';
   var compRows = uc.length===0 ? '<div style="color:#94a3b8;text-align:center;padding:16px;">Sin compras</div>'
     : '<table><thead><tr><th>Nombre</th><th>Plan</th><th>Valor</th></tr></thead><tbody>'+uc.map(function(c){ return '<tr><td style="font-weight:500;">'+c.nombre.split(' ').slice(0,2).join(' ')+'</td><td style="color:#94a3b8;font-size:12px;">'+c.plan+'</td><td style="color:#22c55e;font-weight:600;">'+pesos(c.valor_pagado)+'</td></tr>'; }).join('')+'</tbody></table>';
   document.getElementById('dash-tables').innerHTML = '<div class="card"><div style="font-weight:700;margin-bottom:14px;">Ultimos ingresos <span style="font-size:11px;color:#64748b;">(48 hrs)</span></div>'+ingRows+'</div><div class="card"><div style="font-weight:700;margin-bottom:14px;">Ultimas compras</div>'+compRows+'</div>';
