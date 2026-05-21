@@ -248,7 +248,12 @@ function hoyCol(){
 }
 
 function esHoyCol(iso){
-  return iso.substring(0,10) === hoyCol();
+  // Convertir el timestamp a hora Colombia correctamente
+  var d = new Date(iso);
+  var col = new Date(d.getTime() + (d.getTimezoneOffset() * 60000) - (5 * 3600000));
+  var pad = function(n){ return String(n).padStart(2,'0'); };
+  var diaReg = col.getFullYear()+'-'+pad(col.getMonth()+1)+'-'+pad(col.getDate());
+  return diaReg === hoyCol();
 }
 
 // ACCESO
@@ -527,7 +532,10 @@ async function cargarControl(){
   var tablaHTML = '';
   var diaActual = '';
   ing.forEach(function(i, idx){
-    var diaCol = i.fecha_hora.split('T')[0];
+    var d = new Date(i.fecha_hora);
+    var colD = new Date(d.getTime() + (d.getTimezoneOffset() * 60000) - (5 * 3600000));
+    var pad2 = function(n){ return String(n).padStart(2,'0'); };
+    var diaCol = colD.getFullYear()+'-'+pad2(colD.getMonth()+1)+'-'+pad2(colD.getDate());
     if(diaCol !== diaActual){
       diaActual = diaCol;
       var esHoy = diaCol === hoy;
