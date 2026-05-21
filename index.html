@@ -625,12 +625,18 @@ async function tabUsuarios(){
   var res = await db.from('usuarios').select('*').order('nombre');
   var u = res.data || [];
   var filas = u.map(function(x){
-    return '<tr><td style="font-weight:500;">'+x.nombre+'</td><td style="color:#94a3b8;">'+x.cedula+'</td><td>'+(x.plan||'--')+'</td><td>'+fmt(x.fecha_vencimiento)+'</td><td style="text-align:center;">'+(x.ingresos_totales===999?'inf':x.ingresos_restantes+'/'+x.ingresos_totales)+'</td><td><span class="pill '+eCol(x.estado_plan)+'">'+x.estado_plan+'</span></td><td style="white-space:nowrap;"><button class="btn btn-edit-u" style="padding:5px 9px;font-size:11px;background:#1a1d27;color:#00A7BA;border:1px solid #00A7BA;margin-right:3px;" data-u="'+encodeURIComponent(JSON.stringify(x))+'">Editar</button><button class="btn btn-del-u" style="padding:5px 9px;font-size:11px;background:#1a1d27;color:#ef4444;border:1px solid #ef4444;" data-id="'+x.id+'">Eliminar</button></td></tr>';
+    return '<tr><td style="font-weight:500;">'+x.nombre+'</td><td style="color:#94a3b8;">'+x.cedula+'</td><td>'+(x.plan||'--')+'</td><td>'+fmt(x.fecha_vencimiento)+'</td><td style="text-align:center;">'+(x.ingresos_totales===999?'inf':x.ingresos_restantes+'/'+x.ingresos_totales)+'</td><td><span class="pill '+eCol(x.estado_plan)+'">'+x.estado_plan+'</span></td><td style="white-space:nowrap;"><button class="btn btn-edit-u" style="padding:5px 9px;font-size:11px;background:#1a1d27;color:#00A7BA;border:1px solid #00A7BA;margin-right:3px;" data-id="'+x.id+'">Editar</button><button class="btn btn-del-u" style="padding:5px 9px;font-size:11px;background:#1a1d27;color:#ef4444;border:1px solid #ef4444;" data-id="'+x.id+'">Eliminar</button></td></tr>';
   }).join('');
+  // Guardar usuarios en memoria para acceder por id
+  window._usuariosAdm = u;
   document.getElementById('adm-content').innerHTML = '<div style="display:flex;justify-content:flex-end;margin-bottom:14px;"><button class="btn btn-primary" style="width:auto;padding:9px 18px;" id="btn-nuevo-u">+ Nuevo usuario</button></div><div id="frm-u"></div><div style="overflow-x:auto;"><table><thead><tr><th>Nombre</th><th>Cedula</th><th>Plan</th><th>Vence</th><th>Ingresos</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>'+filas+'</tbody></table></div>';
   document.getElementById('btn-nuevo-u').addEventListener('click', function(){ frmUsuario(null); });
   document.querySelectorAll('.btn-edit-u').forEach(function(btn){
-    btn.addEventListener('click', function(){ frmUsuario(JSON.parse(decodeURIComponent(this.getAttribute('data-u')))); });
+    btn.addEventListener('click', function(){
+      var id = this.getAttribute('data-id');
+      var usuario = window._usuariosAdm.find(function(u){ return u.id === id; });
+      if(usuario) frmUsuario(usuario);
+    });
   });
   document.querySelectorAll('.btn-del-u').forEach(function(btn){
     btn.addEventListener('click', function(){ delUsuario(this.getAttribute('data-id')); });
