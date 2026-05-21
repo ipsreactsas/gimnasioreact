@@ -623,19 +623,29 @@ async function cargarAdm(){
 
 async function tabUsuarios(){
   var res = await db.from('usuarios').select('*').order('nombre');
+  var resC = await db.from('compras').select('*').order('fecha_hora',{ascending:false});
   var u = res.data || [];
+  var compras = resC.data || [];
+  window._usuariosAdm = u;
+  window._comprasAdm = compras;
   var filas = u.map(function(x){
     return '<tr><td style="font-weight:500;">'+x.nombre+'</td><td style="color:#94a3b8;">'+x.cedula+'</td><td>'+(x.plan||'--')+'</td><td>'+fmt(x.fecha_vencimiento)+'</td><td style="text-align:center;">'+(x.ingresos_totales===999?'inf':x.ingresos_restantes+'/'+x.ingresos_totales)+'</td><td><span class="pill '+eCol(x.estado_plan)+'">'+x.estado_plan+'</span></td><td style="white-space:nowrap;"><button class="btn btn-edit-u" style="padding:5px 9px;font-size:11px;background:#1a1d27;color:#00A7BA;border:1px solid #00A7BA;margin-right:3px;" data-id="'+x.id+'">Editar</button><button class="btn btn-del-u" style="padding:5px 9px;font-size:11px;background:#1a1d27;color:#ef4444;border:1px solid #ef4444;" data-id="'+x.id+'">Eliminar</button></td></tr>';
   }).join('');
-  // Guardar usuarios en memoria para acceder por id
-  window._usuariosAdm = u;
-  document.getElementById('adm-content').innerHTML = '<div style="display:flex;justify-content:flex-end;margin-bottom:14px;"><button class="btn btn-primary" style="width:auto;padding:9px 18px;" id="btn-nuevo-u">+ Nuevo usuario</button></div><div id="frm-u"></div><div style="overflow-x:auto;"><table><thead><tr><th>Nombre</th><th>Cedula</th><th>Plan</th><th>Vence</th><th>Ingresos</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>'+filas+'</tbody></table></div>';
+  document.getElementById('adm-content').innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;"><button class="btn btn-primary" style="width:auto;padding:9px 18px;" id="btn-nuevo-u">+ Nuevo usuario</button><button class="btn" style="width:auto;padding:9px 18px;background:#166534;color:#dcfce7;font-size:14px;" id="btn-export-usuarios">Exportar CSV completo</button></div><div id="frm-u"></div><div style="overflow-x:auto;"><table><thead><tr><th>Nombre</th><th>Cedula</th><th>Plan</th><th>Vence</th><th>Ingresos</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>'+filas+'</tbody></table></div>';
   document.getElementById('btn-nuevo-u').addEventListener('click', function(){ frmUsuario(null); });
+  document.getElementById('btn-export-usuarios').addEventListener('click', exportarUsuarios);
   document.querySelectorAll('.btn-edit-u').forEach(function(btn){
     btn.addEventListener('click', function(){
       var id = this.getAttribute('data-id');
-      var usuario = window._usuariosAdm.find(function(u){ return u.id === id; });
-      if(usuario) frmUsuario(usuario);
+      console.log('Editar click - id:', id);
+      console.log('Usuarios en memoria:', window._usuariosAdm ? window._usuariosAdm.length : 'NO CARGADOS');
+      var usuario = window._usuariosAdm ? window._usuariosAdm.find(function(u){ return String(u.id) === String(id); }) : null;
+      console.log('Usuario encontrado:', usuario ? usuario.nombre : 'NO ENCONTRADO');
+      if(usuario){
+        frmUsuario(usuario);
+      } else {
+        alert('Error: no se pudo cargar el usuario. Recarga la pagina e intenta de nuevo.');
+      }
     });
   });
   document.querySelectorAll('.btn-del-u').forEach(function(btn){
@@ -651,6 +661,23 @@ function frmUsuario(u){
   document.getElementById('frm-u').innerHTML = '<div class="card" style="margin-bottom:16px;"><div style="font-weight:700;margin-bottom:14px;">'+(u?'Editar':'Nuevo')+' usuario</div><input type="hidden" id="fu-id" value="'+(u?u.id:'')+'"/><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">'+gridHTML+'<div><div style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Plan</div><select class="inp" id="fu-plan" style="background:#0f1117;font-size:15px;">'+planOpts+'</select></div><div><div style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Estado</div><select class="inp" id="fu-est" style="background:#0f1117;font-size:15px;">'+estOpts+'</select></div><div><div style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Ingresos totales</div><input class="inp" id="fu-it" type="number" value="'+(u?u.ingresos_totales:8)+'" style="background:#0f1117;font-size:15px;"/></div><div><div style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Ingresos restantes</div><input class="inp" id="fu-ir" type="number" value="'+(u?u.ingresos_restantes:8)+'" style="background:#0f1117;font-size:15px;"/></div></div><div style="display:flex;gap:10px;"><button class="btn btn-primary" style="width:auto;padding:10px 22px;" id="btn-save-u">Guardar</button><button class="btn" style="width:auto;padding:10px 22px;background:#1a1d27;color:#94a3b8;border:1px solid #2a2d3a;" id="btn-cancel-u">Cancelar</button></div></div>';
   document.getElementById('btn-save-u').addEventListener('click', saveUsuario);
   document.getElementById('btn-cancel-u').addEventListener('click', function(){ document.getElementById('frm-u').innerHTML=''; });
+}
+
+function exportarUsuarios(){
+  var usuarios = window._usuariosAdm || [];
+  var compras = window._comprasAdm || [];
+  var csv = 'Nombre,Cedula,Telefono,Plan,Fecha Compra,Fecha Vencimiento,Ingresos Totales,Ingresos Restantes,Estado,Ultimo Valor Pagado,Ultimo Metodo Pago\n';
+  usuarios.forEach(function(u){
+    // Buscar la compra mas reciente del usuario
+    var comprasU = compras.filter(function(c){ return c.cedula === u.cedula; });
+    var ultima = comprasU.length > 0 ? comprasU[0] : null;
+    csv += '"'+u.nombre+'",'+u.cedula+','+(u.telefono||'')+',"'+(u.plan||'')+'",'+fmt(u.fecha_compra)+','+fmt(u.fecha_vencimiento)+','+u.ingresos_totales+','+u.ingresos_restantes+','+u.estado_plan+','+(ultima?ultima.valor_pagado:'')+','+(ultima?'"'+(ultima.metodo_pago||'')+'\"':'')+'\n';
+  });
+  var a = document.createElement('a');
+  var fecha = hoyCol();
+  a.href = URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}));
+  a.download = 'usuarios_react_'+fecha+'.csv';
+  a.click();
 }
 
 async function saveUsuario(){
