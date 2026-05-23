@@ -181,6 +181,67 @@ tr:nth-child(even) td{background:#1a1d27;}
   </div>
 </div>
 
+<!-- MODAL TERMINOS Y CONDICIONES -->
+<div class="modal-bg" id="mod-terminos">
+  <div class="modal" style="max-width:620px;">
+    <div style="font-size:18px;font-weight:800;margin-bottom:4px;">Terminos y Condiciones</div>
+    <div style="font-size:12px;color:#64748b;margin-bottom:16px;">Programa de Acondicionamiento Fisico — IPS Re:ACT</div>
+
+    <div style="background:#0f1117;border:1px solid #2a2d3a;border-radius:10px;padding:16px;height:260px;overflow-y:auto;font-size:13px;line-height:1.7;color:#cbd5e1;margin-bottom:16px;" id="terminos-texto">
+      <b style="color:#f1f5f9;">1. Naturaleza del servicio</b><br/>
+      El programa de acondicionamiento fisico ofrecido por la IPS corresponde a un servicio de apoyo fisico y bienestar integral, prestado mediante sesiones programadas y sujetas a disponibilidad de agenda. La adquisicion de cualquiera de los planes implica la aceptacion integral de las presentes condiciones.<br/><br/>
+      <b style="color:#f1f5f9;">2. Vigencia de los planes</b><br/>
+      Cada plan tendra una vigencia maxima de un (1) mes calendario, contado a partir de la fecha de compra o activacion del servicio. Los servicios no utilizados dentro del periodo de vigencia se entenderen vencidos automaticamente, sin lugar a acumulacion para periodos posteriores. Los planes son personales e intransferibles y unicamente podran ser utilizados por el titular registrado.<br/><br/>
+      <b style="color:#f1f5f9;">3. Programacion de sesiones</b><br/>
+      Todas las sesiones deberan ser programadas previamente mediante los canales oficiales definidos por la IPS. La asignacion de horarios estara sujeta a disponibilidad. La IPS recomienda realizar la programacion con anticipacion para garantizar una adecuada prestacion del servicio.<br/><br/>
+      <b style="color:#f1f5f9;">4. Cancelacion y reprogramacion</b><br/>
+      Las cancelaciones o cambios de cita deberan realizarse con minimo 24 horas de anticipacion. Las sesiones canceladas fuera del tiempo establecido o la inasistencia del usuario se consideraran como sesion tomada. La IPS podra autorizar reprogramaciones unicamente dentro del mismo mes calendario de vigencia del plan y segun disponibilidad operativa.<br/><br/>
+      <b style="color:#f1f5f9;">5. Suspension temporal por incapacidad medica</b><br/>
+      Unicamente procedera la suspension temporal del plan cuando exista incapacidad medica debidamente soportada mediante certificado expedido por profesional competente. La incapacidad debera ser informada y presentada oportunamente a la IPS. El tiempo suspendido podra ser reconocido exclusivamente por el periodo certificado y no generara devolucion de dinero.<br/><br/>
+      <b style="color:#f1f5f9;">6. Politica de devoluciones y reembolsos</b><br/>
+      Una vez adquirido el plan y habilitado el servicio, no habra lugar a devoluciones de dinero, salvo en los casos expresamente exigidos por la ley colombiana. En caso de fuerza mayor comprobada, la IPS podra evaluar alternativas de congelamiento temporal o reprogramacion, sin que ello constituya obligacion de reembolso.<br/><br/>
+      <b style="color:#f1f5f9;">7. Obligaciones del usuario</b><br/>
+      El usuario se compromete a: suministrar informacion veraz sobre su estado de salud; informar oportunamente cualquier limitacion fisica, lesion o condicion medica relevante; cumplir las recomendaciones del personal profesional y asistencial; asistir puntualmente a las sesiones programadas; mantener un trato respetuoso hacia el personal y demas usuarios.<br/><br/>
+      <b style="color:#f1f5f9;">8. Condiciones medicas y responsabilidad</b><br/>
+      El usuario declara que participa voluntariamente en las actividades fisicas y que conoce los riesgos inherentes a la practica de ejercicio. La IPS podra solicitar valoracion medica previa cuando lo considere necesario. El incumplimiento de las recomendaciones medicas o del personal profesional exonera a la IPS de responsabilidad derivada de dicho incumplimiento.<br/><br/>
+      <b style="color:#f1f5f9;">9. Modificaciones del servicio</b><br/>
+      La IPS se reserva el derecho de modificar horarios, profesionales asignados, metodologia de entrenamiento o condiciones operativas por razones administrativas, tecnicas, asistenciales o de fuerza mayor, garantizando la continuidad razonable del servicio.<br/><br/>
+      <b style="color:#f1f5f9;">10. Terminacion del servicio</b><br/>
+      La IPS podra suspender o cancelar el acceso al programa en casos de: conductas agresivas o irrespetuosas; incumplimiento reiterado de las normas del programa; uso indebido de las instalaciones; omision de informacion medica relevante que comprometa la seguridad del usuario.<br/><br/>
+      <b style="color:#f1f5f9;">11. Proteccion de datos personales</b><br/>
+      El usuario autoriza el tratamiento de sus datos personales conforme a la politica de proteccion de datos de la IPS y la normatividad colombiana vigente en materia de Habeas Data.<br/><br/>
+      <b style="color:#f1f5f9;">12. Aceptacion</b><br/>
+      Con la adquisicion del plan y/o el uso del servicio, el usuario manifiesta haber leido, comprendido y aceptado las presentes condiciones.
+    </div>
+
+    <!-- Casilla aceptacion -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;background:#20232f;border-radius:8px;padding:12px 14px;">
+      <input type="checkbox" id="chk-terminos" style="width:20px;height:20px;cursor:pointer;accent-color:#00A7BA;"/>
+      <label for="chk-terminos" style="font-size:14px;color:#f1f5f9;cursor:pointer;">He leido y acepto los Terminos y Condiciones del programa de acondicionamiento fisico.</label>
+    </div>
+
+    <!-- Firma digital -->
+    <div style="margin-bottom:16px;">
+      <div style="font-size:14px;font-weight:700;margin-bottom:8px;">Firma del usuario <span style="font-size:12px;color:#94a3b8;font-weight:400;">(requerida para confirmar)</span></div>
+      <div style="background:#fff;border-radius:10px;border:2px solid #2a2d3a;overflow:hidden;touch-action:none;" id="firma-tc-container">
+        <canvas id="firma-tc-cv" width="560" height="160" style="display:block;width:100%;height:160px;cursor:crosshair;touch-action:none;"></canvas>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+        <span style="font-size:11px;color:#94a3b8;">Dibuje con el dedo o el mouse</span>
+        <button class="btn" style="padding:5px 14px;font-size:12px;background:#20232f;color:#94a3b8;border:1px solid #2a2d3a;width:auto;" id="btn-limpiar-tc">Limpiar firma</button>
+      </div>
+    </div>
+
+    <div id="tc-err" style="color:#ef4444;font-size:13px;text-align:center;margin-bottom:10px;display:none;"></div>
+
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-green" style="flex:2;" id="btn-aceptar-tc">Aceptar y continuar</button>
+      <button class="btn" style="flex:1;background:#1a1d27;color:#94a3b8;border:1px solid #2a2d3a;" id="btn-cancelar-tc">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONTRASEÑA COMPRA -->
 <div class="modal-bg" id="mod-pwd-compra">
   <div class="modal" style="max-width:380px;">
     <div style="font-size:18px;font-weight:700;margin-bottom:6px;">Autorizacion requerida</div>
@@ -446,8 +507,62 @@ async function buscarCompra(){
   renderPlanes(); renderMetodos();
 }
 
-document.getElementById('btn-confirmar-compra').addEventListener('click', abrirPwdCompra);
+document.getElementById('btn-confirmar-compra').addEventListener('click', abrirTerminos);
 document.getElementById('btn-cerrar-compra').addEventListener('click', resetCompra);
+
+// FIRMA TERMINOS Y CONDICIONES
+var cvTC, cxTC, drawTC = false;
+var firmaTCData = null;
+
+function initFirmaTC(){
+  cvTC = document.getElementById('firma-tc-cv');
+  if(!cvTC) return;
+  cxTC = cvTC.getContext('2d');
+  cvTC.addEventListener('mousedown', function(e){ drawTC=true; var p=posCanvas(e,cvTC); cxTC.beginPath(); cxTC.moveTo(p.x,p.y); });
+  cvTC.addEventListener('mousemove', function(e){ if(!drawTC) return; var p=posCanvas(e,cvTC); cxTC.lineWidth=2.5; cxTC.lineCap='round'; cxTC.strokeStyle='#1e3a5f'; cxTC.lineTo(p.x,p.y); cxTC.stroke(); cxTC.beginPath(); cxTC.moveTo(p.x,p.y); });
+  cvTC.addEventListener('mouseup', function(){ drawTC=false; });
+  cvTC.addEventListener('mouseleave', function(){ drawTC=false; });
+  cvTC.addEventListener('touchstart', function(e){ e.preventDefault(); drawTC=true; var p=posCanvas(e,cvTC); cxTC.beginPath(); cxTC.moveTo(p.x,p.y); }, {passive:false});
+  cvTC.addEventListener('touchmove', function(e){ e.preventDefault(); if(!drawTC) return; var p=posCanvas(e,cvTC); cxTC.lineWidth=2.5; cxTC.lineCap='round'; cxTC.strokeStyle='#1e3a5f'; cxTC.lineTo(p.x,p.y); cxTC.stroke(); cxTC.beginPath(); cxTC.moveTo(p.x,p.y); }, {passive:false});
+  cvTC.addEventListener('touchend', function(e){ e.preventDefault(); drawTC=false; }, {passive:false});
+  document.getElementById('btn-limpiar-tc').addEventListener('click', function(){ cxTC.clearRect(0,0,cvTC.width,cvTC.height); firmaTCData=null; });
+  document.getElementById('btn-aceptar-tc').addEventListener('click', validarTerminos);
+  document.getElementById('btn-cancelar-tc').addEventListener('click', function(){ document.getElementById('mod-terminos').classList.remove('open'); });
+}
+
+function abrirTerminos(){
+  document.getElementById('mod-terminos').classList.add('open');
+  document.getElementById('chk-terminos').checked = false;
+  document.getElementById('tc-err').style.display = 'none';
+  firmaTCData = null;
+  setTimeout(function(){
+    initFirmaTC();
+    if(cxTC) cxTC.clearRect(0,0,cvTC.width,cvTC.height);
+  }, 100);
+}
+
+function validarTerminos(){
+  var aceptado = document.getElementById('chk-terminos').checked;
+  var errEl = document.getElementById('tc-err');
+  if(!aceptado){
+    errEl.textContent = 'Debe aceptar los terminos y condiciones para continuar.';
+    errEl.style.display = 'block';
+    return;
+  }
+  var b = document.createElement('canvas'); b.width=cvTC.width; b.height=cvTC.height;
+  if(cvTC.toDataURL() === b.toDataURL()){
+    errEl.textContent = 'La firma del usuario es obligatoria para continuar.';
+    errEl.style.display = 'block';
+    return;
+  }
+  firmaTCData = cvTC.toDataURL('image/png');
+  errEl.style.display = 'none';
+  document.getElementById('mod-terminos').classList.remove('open');
+  // Abrir modal de contrasena
+  abrirPwdCompra();
+}
+
+// FIRMA TERMINOS Y CONDICIONES - FIN
 
 function abrirPwdCompra(){
   document.getElementById('pwd-compra-inp').value = '';
@@ -489,13 +604,13 @@ async function confirmarCompra(){
     await db.from('usuarios').update({fecha_compra:hoy, fecha_vencimiento:vence, ingresos_totales:planSel.ingresos, ingresos_restantes:planSel.ingresos, estado_plan:'Vigente', plan:planSel.nombre}).eq('id', cUser.id);
     uid = cUser.id;
   }
-  await db.from('compras').insert([{usuario_id:uid, nombre:nombre, cedula:ced, telefono:tel, plan:planSel.nombre, fecha_compra:hoy, fecha_vencimiento:vence, ingresos_totales:planSel.ingresos, valor_pagado:valor, metodo_pago:metodo, fecha_hora:nowISO()}]);
+  await db.from('compras').insert([{usuario_id:uid, nombre:nombre, cedula:ced, telefono:tel, plan:planSel.nombre, fecha_compra:hoy, fecha_vencimiento:vence, ingresos_totales:planSel.ingresos, valor_pagado:valor, metodo_pago:metodo, fecha_hora:nowISO(), firma_tc:firmaTCData, fecha_aceptacion_tc:nowISO()}]);
   document.getElementById('c-step2').style.display = 'none';
   document.getElementById('c-step3').style.display = 'block';
-  var items = [['Plan',planSel.nombre],['Vence',fmt(vence)],['Ingresos',planSel.ingresos],['Valor',pesos(valor)],['Metodo',metodo]];
+  var items = [['Plan',planSel.nombre],['Vence',fmt(vence)],['Ingresos',planSel.ingresos],['Valor',pesos(valor)],['Metodo',metodo],['T&C Aceptados',nowISO().split('T')[0]]];
   document.getElementById('c-resumen').innerHTML = items.map(function(item){
     return '<div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:15px;"><span style="color:#94a3b8;">'+item[0]+'</span><b>'+item[1]+'</b></div>';
-  }).join('');
+  }).join('') + '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #2a2d3a;"><div style="font-size:12px;color:#94a3b8;margin-bottom:6px;">Firma del usuario:</div><img src="'+firmaTCData+'" style="max-width:100%;border-radius:6px;background:#fff;padding:4px;"/></div>';
 }
 
 function resetCompra(){
