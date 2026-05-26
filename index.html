@@ -54,8 +54,13 @@ tr:nth-child(even) td{background:#1a1d27;}
 
 <div id="pantalla-acceso">
   <div style="background:#1a1d27;border:1px solid #2a2d3a;border-radius:16px;padding:40px;width:min(380px,95vw);text-align:center;">
-    <div style="font-size:52px;font-weight:900;letter-spacing:4px;margin-bottom:4px;">Re:<span style="color:#00A7BA;">ACT</span></div>
-    <div style="font-size:12px;color:#94a3b8;letter-spacing:2px;margin-bottom:28px;">REHABILITACION Y ACTIVIDAD FISICA</div>
+    <svg width="260" height="80" viewBox="0 0 260 80" role="img" style="margin-bottom:4px;">
+      <title>Re:ACT</title>
+      <text x="0" y="62" style="font-family:Georgia,serif;font-size:72px;font-weight:700;fill:#ffffff;letter-spacing:-2px;">Re</text>
+      <text x="92" y="62" style="font-family:Arial,sans-serif;font-size:72px;font-weight:700;fill:#ffffff;">:</text>
+      <text x="112" y="62" style="font-family:Arial,sans-serif;font-size:72px;font-weight:700;fill:#00A7BA;letter-spacing:4px;">ACT</text>
+    </svg>
+    <div style="font-size:12px;color:#94a3b8;letter-spacing:3px;margin-bottom:28px;">REHABILITACIÓN Y ACTIVIDAD FÍSICA</div>
     <div style="font-size:15px;color:#94a3b8;margin-bottom:10px;">Ingresa la contrasena de acceso</div>
     <input id="acc-pass" type="password" placeholder="Contrasena" class="inp" autocomplete="new-password" style="font-size:20px;text-align:center;letter-spacing:4px;margin-bottom:12px;"/>
     <div id="acc-err" style="color:#ef4444;font-size:14px;margin-bottom:12px;display:none;">Contrasena incorrecta</div>
@@ -64,7 +69,10 @@ tr:nth-child(even) td{background:#1a1d27;}
 </div>
 
 <div class="topbar">
-  <div class="logo">Re:<span>ACT</span><span style="font-size:11px;color:#64748b;font-weight:400;margin-left:8px;">Control de Ingresos</span></div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <img src="https://ipsreactsas.github.io/gimnasioreact/LOGO%20FONDO%20NEGRO.png" alt="Re:ACT" style="height:38px;width:auto;"/>
+    <span style="font-size:11px;color:#64748b;font-weight:400;">Control de Ingresos</span>
+  </div>
   <div class="nav">
     <button id="nav-reception" onclick="showScreen('reception')">Recepcion</button>
     <button class="compra" id="nav-compra" onclick="showScreen('compra')">Compra</button>
@@ -78,8 +86,7 @@ tr:nth-child(even) td{background:#1a1d27;}
   <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;">
     <div class="card" style="width:100%;max-width:500px;">
       <div style="text-align:center;margin-bottom:28px;">
-        <div style="font-size:52px;font-weight:900;letter-spacing:4px;">Re:<span style="color:#00A7BA;">ACT</span></div>
-        <div style="font-size:13px;color:#94a3b8;letter-spacing:2px;margin-top:6px;">REHABILITACION Y ACTIVIDAD FISICA</div>
+        <img src="https://ipsreactsas.github.io/gimnasioreact/LOGO%20FONDO%20NEGRO.png" alt="Re:ACT" style="height:90px;width:auto;"/>
       </div>
       <input class="inp" id="rec-cedula" type="number" placeholder="Numero de cedula" style="font-size:24px;margin-bottom:14px;letter-spacing:3px;"/>
       <button class="btn btn-primary" id="rec-btn">Consultar</button>
