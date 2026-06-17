@@ -318,6 +318,7 @@ document.getElementById('acc-pass').addEventListener('keydown', function(e){ if(
 function verificarAcceso(){
   var p = document.getElementById('acc-pass').value.trim();
   document.getElementById('acc-err').style.display = 'none';
+  console.log('Verificando acceso, longitud clave:', p.length);
   if(p===PWD_ACCESO || p===PWD_ADMIN){
     document.getElementById('pantalla-acceso').style.display = 'none';
     if(p===PWD_ADMIN) admLogged = true;
