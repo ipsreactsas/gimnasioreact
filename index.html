@@ -370,9 +370,21 @@ async function buscarUsuario(){
   if(!res.data){ r.innerHTML='<div class="msg msg-err">Usuario no encontrado</div>'; return; }
   var d = res.data;
 
-  // Verificar vencimiento real comparando con fecha actual Colombia
+  // Verificar vencimiento real usando objetos Date para comparacion segura
   var hoy = hoyCol();
-  var planVencido = d.fecha_vencimiento && d.fecha_vencimiento < hoy;
+  var fechaVence = d.fecha_vencimiento ? d.fecha_vencimiento.split('T')[0] : null;
+  var planVencido = false;
+
+  if(fechaVence){
+    var partsVence = fechaVence.split('-');
+    var partsHoy = hoy.split('-');
+    var dVence = new Date(parseInt(partsVence[0]), parseInt(partsVence[1])-1, parseInt(partsVence[2]));
+    var dHoy = new Date(parseInt(partsHoy[0]), parseInt(partsHoy[1])-1, parseInt(partsHoy[2]));
+    planVencido = dVence < dHoy;
+  } else {
+    // Sin fecha de vencimiento = vencido
+    planVencido = true;
+  }
 
   // Si el plan esta vencido, actualizar estado en BD automaticamente
   if(planVencido && d.estado_plan === 'Vigente'){
