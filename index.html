@@ -70,7 +70,7 @@ tr:nth-child(even) td{background:#1a1d27;}
 
 <div class="topbar">
   <div style="display:flex;align-items:center;gap:10px;">
-    <img src="https://ipsreactsas.github.io/gimnasioreact/logo.png" alt="ReACT" style="width:160px;height:55px;object-fit:cover;object-position:50% 55%;"/>
+    <div style="font-size:22px;font-weight:900;letter-spacing:2px;color:#fff;">Re:<span style="color:#00A7BA;">ACT</span></div>
     <span style="font-size:11px;color:#64748b;font-weight:400;">Control de Ingresos</span>
   </div>
   <div class="nav">
@@ -86,7 +86,8 @@ tr:nth-child(even) td{background:#1a1d27;}
   <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;">
     <div class="card" style="width:100%;max-width:500px;">
       <div style="text-align:center;margin-bottom:28px;">
-        <img src="https://ipsreactsas.github.io/gimnasioreact/logo.png" alt="ReACT" style="width:340px;height:110px;object-fit:cover;object-position:50% 55%;display:block;margin:0 auto;"/>
+        <div style="font-size:52px;font-weight:900;letter-spacing:4px;">Re:<span style="color:#00A7BA;">ACT</span></div>
+        <div style="font-size:13px;color:#94a3b8;letter-spacing:2px;margin-top:6px;">REHABILITACIÓN Y ACTIVIDAD FÍSICA</div>
       </div>
       <input class="inp" id="rec-cedula" type="number" placeholder="Numero de cedula" style="font-size:24px;margin-bottom:14px;letter-spacing:3px;"/>
       <button class="btn btn-primary" id="rec-btn">Consultar</button>
@@ -368,12 +369,32 @@ async function buscarUsuario(){
   var r = document.getElementById('rec-result');
   if(!res.data){ r.innerHTML='<div class="msg msg-err">Usuario no encontrado</div>'; return; }
   var d = res.data;
+
+  // Verificar vencimiento real comparando con fecha actual Colombia
+  var hoy = hoyCol();
+  var planVencido = d.fecha_vencimiento && d.fecha_vencimiento < hoy;
+
+  // Si el plan esta vencido, actualizar estado en BD automaticamente
+  if(planVencido && d.estado_plan === 'Vigente'){
+    await db.from('usuarios').update({estado_plan:'Vencido'}).eq('id', d.id);
+    d.estado_plan = 'Vencido';
+  }
+
   var ini = d.nombre.split(' ').map(function(n){ return n[0]; }).slice(0,2).join('');
-  var ok = d.estado_plan==='Vigente' && (d.ingresos_restantes>0 || d.ingresos_totales===999);
+  var ok = d.estado_plan === 'Vigente' && !planVencido && (d.ingresos_restantes > 0 || d.ingresos_totales === 999);
   var info = [['Plan',d.plan||'--'],['Compra',fmt(d.fecha_compra)],['Vencimiento',fmt(d.fecha_vencimiento)],['Ingresos',d.ingresos_totales===999?'Ilimitado':d.ingresos_restantes+'/'+d.ingresos_totales]];
   var infoHTML = info.map(function(i){ return '<div style="background:#0f1117;border-radius:8px;padding:12px 14px;"><div style="font-size:12px;color:#94a3b8;margin-bottom:3px;">'+i[0]+'</div><div style="font-weight:700;font-size:18px;">'+i[1]+'</div></div>'; }).join('');
-  var accion = ok ? '<button class="btn btn-green" id="btn-abrir-firma">Aceptar e ingresar</button>'
-    : '<div class="msg msg-err">'+(d.estado_plan==='Vencido'?'Plan vencido':d.estado_plan==='Debe pago'?'Debe pago':'Sin ingresos disponibles')+'</div>';
+
+  var mensajeError = '';
+  if(planVencido) mensajeError = 'Plan vencido desde ' + fmt(d.fecha_vencimiento);
+  else if(d.estado_plan === 'Vencido') mensajeError = 'Plan vencido';
+  else if(d.estado_plan === 'Debe pago') mensajeError = 'Debe pago — No se permite el ingreso';
+  else if(d.ingresos_restantes <= 0 && d.ingresos_totales !== 999) mensajeError = 'Sin ingresos disponibles';
+
+  var accion = ok
+    ? '<button class="btn btn-green" id="btn-abrir-firma">Aceptar e ingresar</button>'
+    : '<div class="msg msg-err">' + mensajeError + '</div>';
+
   r.innerHTML = '<div class="card"><div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;"><div style="width:52px;height:52px;border-radius:50%;background:#2B5C79;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;">'+ini+'</div><div><div style="font-weight:700;font-size:20px;">'+d.nombre+'</div><div style="color:#94a3b8;font-size:14px;">CC '+d.cedula+'</div></div><span class="pill '+eCol(d.estado_plan)+'" style="margin-left:auto;">'+d.estado_plan+'</span></div><div class="grid2" style="margin-bottom:16px;">'+infoHTML+'</div>'+accion+'</div>';
   if(ok) document.getElementById('btn-abrir-firma').addEventListener('click', abrirFirma);
 }
@@ -682,8 +703,40 @@ async function generarPDFTerminos(){
   var fi=document.getElementById('pdf-tc-fi').value, ff=document.getElementById('pdf-tc-ff').value;
   setStatus('Cargando datos...','#00A7BA');
   var r=await db.from('compras').select('*').gte('fecha_compra',fi).lte('fecha_compra',ff).order('fecha_compra',{ascending:false});
-  var compras=(r.data||[]).filter(function(c){ return c.firma_tc; });
-  if(!compras.length){ setStatus('No hay compras con firma en ese rango.','#ef4444'); return; }
+  var todas=r.data||[];
+  var conFirma=todas.filter(function(c){ return c.firma_tc; });
+  var sinFirma=todas.filter(function(c){ return !c.firma_tc; });
+
+  if(!todas.length){ setStatus('No hay compras en ese rango de fechas.','#ef4444'); return; }
+
+  var win=window.open('','_blank');
+  var h='<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Firmas T&C</title><style>body{font-family:Arial,sans-serif;margin:0;color:#1a1a2e;}.hdr{background:#0f1117;color:#fff;padding:20px 28px;display:flex;justify-content:space-between;align-items:center;}.logo{font-size:26px;font-weight:900;letter-spacing:3px;}.logo span{color:#00A7BA;}.content{padding:20px 28px;}.reg{border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-bottom:16px;page-break-inside:avoid;}.reg-top{display:flex;justify-content:space-between;margin-bottom:12px;border-bottom:1px solid #e2e8f0;padding-bottom:10px;}.nom{font-size:15px;font-weight:800;}.ced{font-size:12px;color:#64748b;}.badge-ok{background:#0f2d1a;color:#22c55e;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}.badge-no{background:#2d0f0f;color:#ef4444;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;}.campo{background:#f8fafc;border-radius:6px;padding:7px 10px;}.cl{font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;}.cv{font-size:13px;font-weight:700;}.fbox{background:#f8fafc;border-radius:6px;padding:10px;border:1px solid #e2e8f0;}.fl{font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}.clausula{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:8px 12px;font-size:11px;color:#166534;margin-top:8px;line-height:1.5;}.sin-firma{background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;padding:8px 12px;font-size:11px;color:#9a3412;margin-top:8px;}.seccion{background:#f1f5f9;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;font-weight:700;color:#475569;}.footer{text-align:center;font-size:10px;color:#94a3b8;padding:12px;border-top:1px solid #e2e8f0;margin-top:16px;}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style></head><body>';
+  h+='<div class="hdr"><div><div class="logo">Re:<span>ACT</span></div><div style="font-size:10px;color:#94a3b8;letter-spacing:2px;">REHABILITACION Y ACTIVIDAD FISICA</div></div><div style="text-align:right;"><div style="font-size:12px;color:#22c55e;font-weight:700;">REPORTE DE COMPRAS Y ACEPTACION T&C</div><div style="font-size:11px;color:#94a3b8;">'+fi+' al '+ff+' | Total: '+todas.length+' compras</div><div style="font-size:11px;color:#94a3b8;">Con firma: '+conFirma.length+' | Sin firma: '+sinFirma.length+'</div></div></div>';
+  h+='<div class="content">';
+
+  if(conFirma.length>0){
+    h+='<div class="seccion">✅ COMPRAS CON FIRMA T&C ('+conFirma.length+')</div>';
+    conFirma.forEach(function(c){
+      h+='<div class="reg"><div class="reg-top"><div><div class="nom">'+c.nombre+'</div><div class="ced">CC '+c.cedula+(c.telefono?' | Tel: '+c.telefono:'')+'</div></div><span class="badge-ok">Terminos Aceptados</span></div>';
+      h+='<div class="grid"><div class="campo"><div class="cl">Plan</div><div class="cv">'+(c.plan||'--')+'</div></div><div class="campo"><div class="cl">Fecha compra</div><div class="cv">'+fmt(c.fecha_compra)+'</div></div><div class="campo"><div class="cl">Vencimiento</div><div class="cv">'+fmt(c.fecha_vencimiento)+'</div></div><div class="campo"><div class="cl">Valor</div><div class="cv">'+pesos(c.valor_pagado)+'</div></div><div class="campo"><div class="cl">Metodo</div><div class="cv">'+(c.metodo_pago||'--')+'</div></div><div class="campo"><div class="cl">Fecha aceptacion</div><div class="cv">'+(c.fecha_aceptacion_tc?c.fecha_aceptacion_tc.split('T')[0]:fmt(c.fecha_compra))+'</div></div></div>';
+      h+='<div class="fbox"><div class="fl">Firma digital</div><img src="'+c.firma_tc+'" style="max-width:260px;max-height:90px;display:block;"/></div>';
+      h+='<div class="clausula">&#10003; El usuario declaro haber leido, comprendido y aceptado las Condiciones Generales del Programa de Acondicionamiento Fisico de IPS Re:ACT.</div></div>';
+    });
+  }
+
+  if(sinFirma.length>0){
+    h+='<div class="seccion" style="background:#fff7ed;color:#9a3412;">⚠ COMPRAS SIN FIRMA T&C ('+sinFirma.length+') — Registradas antes de implementar el sistema de firmas</div>';
+    sinFirma.forEach(function(c){
+      h+='<div class="reg"><div class="reg-top"><div><div class="nom">'+c.nombre+'</div><div class="ced">CC '+c.cedula+(c.telefono?' | Tel: '+c.telefono:'')+'</div></div><span class="badge-no">Sin firma digital</span></div>';
+      h+='<div class="grid"><div class="campo"><div class="cl">Plan</div><div class="cv">'+(c.plan||'--')+'</div></div><div class="campo"><div class="cl">Fecha compra</div><div class="cv">'+fmt(c.fecha_compra)+'</div></div><div class="campo"><div class="cl">Vencimiento</div><div class="cv">'+fmt(c.fecha_vencimiento)+'</div></div><div class="campo"><div class="cl">Valor</div><div class="cv">'+pesos(c.valor_pagado)+'</div></div><div class="campo"><div class="cl">Metodo</div><div class="cv">'+(c.metodo_pago||'--')+'</div></div><div class="campo"><div class="cl">Ingresos</div><div class="cv">'+(c.ingresos_totales||'--')+'</div></div></div>';
+      h+='<div class="sin-firma">Esta compra fue registrada antes de la implementacion del sistema de firma digital de terminos y condiciones.</div></div>';
+    });
+  }
+
+  h+='</div><div class="footer">Re:ACT IPS | Documento generado electronicamente | '+hoyCol()+'</div></body></html>';
+  win.document.write(h); win.document.close(); setTimeout(function(){ win.print(); },800);
+  setStatus('PDF generado: '+conFirma.length+' con firma, '+sinFirma.length+' sin firma.','#22c55e');
+}
   var win=window.open('','_blank');
   var h='<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Firmas T&C</title><style>body{font-family:Arial,sans-serif;margin:0;color:#1a1a2e;}.hdr{background:#0f1117;color:#fff;padding:20px 28px;display:flex;justify-content:space-between;align-items:center;}.logo{font-size:26px;font-weight:900;letter-spacing:3px;}.logo span{color:#00A7BA;}.content{padding:20px 28px;}.reg{border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-bottom:16px;page-break-inside:avoid;}.reg-top{display:flex;justify-content:space-between;margin-bottom:12px;border-bottom:1px solid #e2e8f0;padding-bottom:10px;}.nom{font-size:15px;font-weight:800;}.ced{font-size:12px;color:#64748b;}.badge{background:#0f2d1a;color:#22c55e;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;}.campo{background:#f8fafc;border-radius:6px;padding:7px 10px;}.cl{font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;}.cv{font-size:13px;font-weight:700;}.fbox{background:#f8fafc;border-radius:6px;padding:10px;border:1px solid #e2e8f0;}.fl{font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}.clausula{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:8px 12px;font-size:11px;color:#166534;margin-top:8px;line-height:1.5;}.footer{text-align:center;font-size:10px;color:#94a3b8;padding:12px;border-top:1px solid #e2e8f0;margin-top:16px;}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style></head><body>';
   h+='<div class="hdr"><div><div class="logo">Re:<span>ACT</span></div><div style="font-size:10px;color:#94a3b8;letter-spacing:2px;">REHABILITACION Y ACTIVIDAD FISICA</div></div><div style="text-align:right;"><div style="font-size:12px;color:#22c55e;font-weight:700;">REPORTE DE ACEPTACION T&C</div><div style="font-size:11px;color:#94a3b8;">'+fi+' al '+ff+' | Generado: '+hoyCol()+'</div></div></div>';
@@ -729,7 +782,7 @@ async function cargarDash(){
     db.from('usuarios').select('*',{count:'exact',head:true}).eq('estado_plan','Vigente'),
     db.from('usuarios').select('*',{count:'exact',head:true}).neq('estado_plan','Vigente'),
     db.from('usuarios').select('*',{count:'exact',head:true}),
-    db.from('compras').select('*',{count:'exact',head:true}).eq('fecha_compra',hoy),
+    db.from('compras').select('*',{count:'exact',head:true}).gte('fecha_compra',hoy).lte('fecha_compra',hoy),
     db.from('ingresos').select('nombre,fecha_hora,firma').gte('fecha_hora',desde48).order('fecha_hora',{ascending:false}).limit(10),
     db.from('compras').select('nombre,plan,valor_pagado').order('created_at',{ascending:false}).limit(6)
   ]);
